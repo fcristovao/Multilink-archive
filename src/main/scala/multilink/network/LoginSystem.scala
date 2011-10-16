@@ -6,7 +6,7 @@ import scala.collection.mutable.Map
 
 import multilink.util.{Composable, ComposableActor, LoggableComposableActor}
 
-object LoginSystem extends Composable[LoginSystem]{
+object LoginSystem{
   type Username = String
   type Password = String
   
@@ -42,7 +42,7 @@ class LoginSystem extends Actor{
 }
 */
 
-class LoginSystem extends ComposableActor with LoggableComposableActor{
+case class LoginSystem() extends ComposableActor with LoggableComposableActor{
 	import LoginSystem._
   
   val database = Map[Username, Password]()
@@ -58,7 +58,6 @@ class LoginSystem extends ComposableActor with LoggableComposableActor{
     	database += username -> password
     	done
     }
-    case _ => done
 	}
 
 }

@@ -8,7 +8,7 @@ import akka.config.Config.config
 
 import Composable._
 
-trait ComposableActor extends Actor with Combinable {
+trait ComposableActor extends Actor with Composable {
 	this: Actor =>
 	
 	

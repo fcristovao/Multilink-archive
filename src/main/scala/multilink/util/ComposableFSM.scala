@@ -2,7 +2,7 @@ package multilink.util
 
 import akka.actor.{Actor, FSM}
 
-trait ComposableFSM[S,D] extends FSM[S,D] with Combinable {this: Actor =>
+trait ComposableFSM[S,D] extends FSM[S,D] with Composable {this: Actor =>
 	import Composable._
 	
 	val ender: StateFunction = {

@@ -6,7 +6,7 @@ import akka.util.duration._
 
 import multilink.util.{Composable, ComposableFSM}
 
-object Firewall extends Composable[Firewall]{
+object Firewall {
   sealed trait State
 	case object Disabled extends State
 	case object Bypassed extends State
@@ -20,11 +20,11 @@ object Firewall extends Composable[Firewall]{
 
 
 
-class Firewall extends Actor with ComposableFSM[Firewall.State, Unit] with LoggingFSM[Firewall.State, Unit] {
+class Firewall(x: String) extends Actor with ComposableFSM[Firewall.State, Unit] with LoggingFSM[Firewall.State, Unit] {
   import FSM._
   import Firewall._
 
-  
+  println(x)
   
   startWith(Active, Unit)
 

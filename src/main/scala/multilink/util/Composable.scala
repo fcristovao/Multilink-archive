@@ -4,63 +4,121 @@ import akka.actor.{Actor, FSM, ActorRef}
 import akka.actor.Actor._
 import akka.event.EventHandler
 
-trait TCombinable{
-	def >>>(other: TCombinable): TCombinable
-}
-
-trait Combinable //I actually needed a trait named composable, but also needed a class named that way, so combinable it is
-
-
-//This class should be named Arr(ow), as it corresponds to the Lift operation in Arrows
-class Composable[A <: Combinable with Actor: Manifest] private (private val actorClass: Class[_ <: Combinable with Actor]) extends TCombinable{
-	
-	def this() = this(manifest[A].erasure.asInstanceOf[Class[_ <: Combinable with Actor]])
-	
-	def >>>(other: TCombinable): TCombinable = {
-		other match {
-			case x: Composable[_] => Composition(List(this, x))
-			case x: Composition => Composition(this :: x.combinables)
-		}
-	}
-
-	override def toString(): String = {
-		"⇑("+actorClass.getCanonicalName().split('.').last+")"
-	}
-}
-
-case class Composition(combinables: List[TCombinable]) extends TCombinable {
-	def >>>(other: TCombinable): TCombinable = {
-		other match {
-			case x: Composable[_] => Composition(combinables :+ x)
-			case x: Composition => Composition(this :: x.combinables)
-		}
-	}
-	
-	override def toString(): String = {
-		combinables mkString " >>> "
-	}
-}
-
+trait Composable
 
 object Composable {
-	
 	sealed trait ComposableMessages
 	case object Done extends ComposableMessages
 	case class Reply(msg: Any) extends ComposableMessages 
 	
-	private class Dispatcher(val actorClasses: List[Class[_ <: Combinable with Actor]]) extends Actor {
+	trait ArrowOperator{
+		def >>>(other: ArrowOperator): ArrowOperator
+	}
 	
-		val linked = actorClasses.map(actorOf(_))
+	case class Lift (val actorFactory: () => Actor with Composable) extends ArrowOperator{
+		
+		def >>>(other: ArrowOperator): ArrowOperator = {
+			other match {
+				case x @ Lift(_) => Composition(List(this, x))
+				case Composition(composables) => Composition(this :: composables)
+			}
+		}
+	
+		override def toString(): String = {
+			"⇑("+actorFactory+")"
+		}
+	}
+	
+	//needed for Lift(<someActor>)
+	implicit def byNameActorToFunc0(x: => Actor with Composable): () => Actor with Composable = {
+		() => x
+	}
+	
+	implicit def byNameActorToArrowOperator(x: => Actor with Composable): ArrowOperator = {
+		new Lift(() => x)
+	}
+	
+	case class Composition(composables: List[ArrowOperator]) extends ArrowOperator {
+		def >>>(other: ArrowOperator): ArrowOperator = {
+			other match {
+				case x: Lift => Composition(composables :+ x)
+				case x: Composition => Composition(this :: x.composables)
+			}
+		}
+		
+		override def toString(): String = {
+			composables mkString " >>> "
+		}
+	}
+	
+	
+	private object Dispatcher {
+		/*
+		 * This version creates different actor instances in the case of the *same* lift is found in the composition.
+		 * E.g.:
+		 * val tmp = Lift(new Firewall())
+		 * tmp >>> new Gateway >>> tmp
+		 * ^-- This would create 2 different Firewall instances
+		 */
+		/*
+		def toListActorRef(comb: ArrowOperator) : List[ActorRef] = {
+			comb match {
+				case Lift(actorFactory) => List(actorOf(actorFactory()))
+				case Composition(composables) => composables flatMap(toListActorRef(_))
+			}
+		}
+		*/
+		
+		/*
+		 * This version creates only ONE actor instance in the case of the *same* lift is found in the composition.
+		 * E.g.:
+		 * val tmp = Lift(new Firewall())
+		 * tmp >>> new Gateway >>> tmp
+		 * ^-- This would create only one Firewall instance (although it would receive the same message twice)
+		 */
+		def toListActorRef(comb: ArrowOperator) : List[ActorRef] = {
+			def helper(comb: ArrowOperator, listSoFar: List[ActorRef] = List(), alreadyCreated: Map[Lift,ActorRef] = Map()): (List[ActorRef], Map[Lift,ActorRef]) = {
+				comb match {
+					case l @ Lift(actorFactory) => {
+						alreadyCreated.get(l) match {
+							case None => {
+								val actorRef = actorOf(actorFactory())
+								(listSoFar :+ actorRef, alreadyCreated + (l -> actorRef))
+							}
+							case Some(actorRef) => {
+								(listSoFar :+ actorRef, alreadyCreated)
+							}
+						}
+						
+					}
+					case Composition(composables) => {
+						composables.foldLeft((listSoFar, alreadyCreated)){
+							(tuple, arrowOperator) =>
+								tuple match {
+									case (listSoFar, alreadyCreated) => helper(arrowOperator, listSoFar, alreadyCreated)
+								}
+						}
+					}
+				}
+			}
+			
+			helper(comb)._1
+		}
+	}
+	
+	private class Dispatcher(val actorRefs: List[ActorRef]) extends Actor {
+		
+		def this(comb: ArrowOperator) = this(Dispatcher.toListActorRef(comb))
 		
 		override def preStart() = {
-			linked foreach (_.start())
+			actorRefs foreach (_.start())
 		}
 		
 		def receive = {
 			case msg => 
 				val sender = self.sender.get
 				//println(sender)
-				linked takeWhile ((actor) => {
+				actorRefs takeWhile ((actor) => {
 					(actor ? msg).as[ComposableMessages] match {
 						case Some(Done) => true
 						case Some(Reply(msg)) => sender ! msg; false
@@ -77,20 +135,13 @@ object Composable {
 	}
 	
 	
-	implicit def comb2ActorRef(comb: TCombinable) : ActorRef = {
-		actorOf(comb2Actor(comb))
+	implicit def arrowOp2ActorRef(comb: ArrowOperator) : ActorRef = {
+		actorOf(arrowOp2Actor(comb))
 	}
 	
-	implicit def comb2Actor(comb: TCombinable) : Actor = {
-		def toClassList(comb: TCombinable) : List[Class[_ <: Combinable with Actor]] = {
-			comb match {
-				case x: Composable[_] => List(x.actorClass)
-				case x: Composition => x.combinables flatMap(toClassList(_))
-			}
-		}
-		new Dispatcher(toClassList(comb))
+	implicit def arrowOp2Actor(comb: ArrowOperator) : Actor = {
+		new Dispatcher(comb)
 	}
-	
 }
 
 

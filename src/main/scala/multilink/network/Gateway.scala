@@ -7,7 +7,7 @@ import multilink.util.{Composable, ComposableFSM}
 
 
 
-object Gateway extends Composable[Gateway]{
+object Gateway {
   sealed trait State
 	case object Disabled extends State
 	case object Enabled extends State
@@ -21,7 +21,7 @@ object Gateway extends Composable[Gateway]{
 
 
 
-class Gateway extends Actor with ComposableFSM[Gateway.State, Unit] with LoggingFSM[Gateway.State, Unit] {
+class Gateway() extends Actor with ComposableFSM[Gateway.State, Unit] with LoggingFSM[Gateway.State, Unit] {
   import FSM._
   import Gateway._
 
