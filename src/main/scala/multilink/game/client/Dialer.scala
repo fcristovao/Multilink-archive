@@ -1,7 +1,7 @@
 package multilink.game.client
 
 import akka.actor._
-import multilink.network.Gateway
+import multilink.game.network.Gateway
 import akka.util.duration._
 
 object Dialer {

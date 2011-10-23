@@ -8,9 +8,9 @@ import akka.actor._
 
 import scala.collection.mutable
 
-import multilink.network._
-import multilink.software._
-import multilink.client._
+import multilink.game.network._
+import multilink.game.software._
+import multilink.game.client._
 
 /*
 object Client extends SimpleSwingApplication { 

@@ -1,6 +1,4 @@
-import multilink.network._
-import multilink.software._
-import multilink.client._
+import multilink.game.client._
 
 import akka.actor.Actor._
 import akka.actor.Actor

@@ -3,9 +3,8 @@ package multilink.game.network
 import akka.actor.{Actor, FSM, LoggingFSM}
 import akka.event.EventHandler
 import akka.util.duration._
+
 import multilink.util.{Composable, ComposableFSM}
-
-
 
 object Gateway {
   sealed trait State
@@ -17,6 +16,9 @@ object Gateway {
 	case class Connect(from: Int, to: Int) extends Messages
 	case class Routed(from: Int, through: Int, to: Int) extends Messages
 	case class Connected(from: Int, to: Int) extends Messages
+	case object DisableGateway extends Messages
+	case object EnableGateway extends Messages
+
 }
 
 

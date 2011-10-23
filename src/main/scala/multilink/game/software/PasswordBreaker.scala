@@ -3,7 +3,7 @@ package multilink.game.software
 import akka.actor.Actor
 import akka.actor.ActorRef
 
-import multilink.network.LoginSystem
+import multilink.game.network.LoginSystem
 
 object PasswordBreaker{
   sealed trait Messages
