@@ -24,8 +24,6 @@ class Firewall(x: String) extends Actor with ComposableFSM[Firewall.State, Unit]
   import FSM._
   import Firewall._
 
-  println(x)
-  
   startWith(Active, Unit)
 
   whenIn(Active) {

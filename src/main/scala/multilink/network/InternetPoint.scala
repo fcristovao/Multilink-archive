@@ -20,9 +20,7 @@ object InternetPoint {
 	*/
 	
 	def apply(ip: Int): Actor = {
-		Lift(LoginSystem())
-		val tmp = Lift(new Firewall("test "+ip))
-		tmp >>> new Gateway >>> LoginSystem() >>> tmp
+		new Gateway() >>> new Firewall("test "+ip) >>> LoginSystem() 
 	}
 
 }
