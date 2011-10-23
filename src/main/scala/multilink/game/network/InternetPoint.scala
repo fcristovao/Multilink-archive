@@ -1,4 +1,4 @@
-package multilink.network
+package multilink.game.network
 
 import akka.actor.{Actor, FSM, ActorRef}
 import akka.actor.Actor._

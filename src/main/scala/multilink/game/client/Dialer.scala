@@ -1,4 +1,4 @@
-package multilink.client
+package multilink.game.client
 
 import akka.actor._
 import multilink.network.Gateway

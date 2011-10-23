@@ -1,4 +1,4 @@
-package multilink.client
+package multilink.game.client
 
 import scala.swing._
 

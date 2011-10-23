@@ -1,4 +1,4 @@
-package multilink.software
+package multilink.game.software
 
 import akka.actor.Actor
 import akka.actor.ActorRef
