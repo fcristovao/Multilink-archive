@@ -1,7 +1,6 @@
 package multilink.game.network
 
 import akka.actor.{Actor, FSM, LoggingFSM}
-import akka.event.EventHandler
 import akka.util.duration._
 
 import multilink.util.{Composable, ComposableFSM}
@@ -27,24 +26,24 @@ class Firewall(x: String) extends Actor with ComposableFSM[Firewall.State, Unit]
   startWith(Active, Unit)
 
   whenIn(Active) {
-    case Ev(DisableFirewall) =>
+    case Event(DisableFirewall,_) =>
       goto(Disabled) 
-    case Ev(BypassFirewall) =>
-    	EventHandler.info(this, "Bypassing Firewall");
+    case Event(BypassFirewall,_) =>
+    	log.info("Bypassing Firewall");
       goto(Bypassed) forMax (2 seconds) 
-    case Ev(StateTimeout) =>
+    case Event(StateTimeout,_) =>
       goto(Disabled) forMax (2 seconds)
   }
 
   whenIn(Bypassed) {
-    case Ev(StateTimeout) =>
-      EventHandler.info(this, "Moving to Active")
+    case Event(StateTimeout,_) =>
+      log.info("Moving to Active")
       goto(Active) forMax (2 seconds)
   }
 
   whenIn(Disabled) {
-    case Ev(StateTimeout) =>
-      EventHandler.info(this, "stopping")
+    case Event(StateTimeout,_) =>
+      log.info("stopping")
       stop
   }
 

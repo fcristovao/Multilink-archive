@@ -2,7 +2,6 @@ package multilink.game.network
 
 import akka.actor.{Actor, FSM, ActorRef}
 import akka.actor.Actor._
-import akka.routing.Dispatcher
 
 object InternetPoint {
 	import multilink.util.Composable._
@@ -20,7 +19,7 @@ object InternetPoint {
 	*/
 	
 	def apply(ip: Int): Actor = {
-		new Gateway() >>> new Firewall("test "+ip) >>> LoginSystem() 
+		new Logger().onlyOutgoing >>> new Gateway() >>> new Firewall("test "+ip) >>> LoginSystem() 
 	}
 
 }

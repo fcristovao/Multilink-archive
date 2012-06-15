@@ -19,8 +19,11 @@ class PasswordBreaker extends Actor{
 	
 	
 	def receive = {
+		case x => sender ! x
+		/*
 		case PasswordBreaker.GetPasswordFor(username, loginSystem) => val tmp = loginSystem ? LoginSystem.GetPasswordFor(username)
-			self.reply(tmp.get)
+			sender ! tmp.get
+		*/
 	}
 
 }

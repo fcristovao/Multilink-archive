@@ -21,7 +21,7 @@ object Dialer {
 	val NullData: Data = (Map.empty, Set.empty, None)
 }
 
-class Dialer(internetPointsDatabase: ActorRef) extends Actor with FSM[Dialer.States, Dialer.Data] with LoggingFSM[Dialer.States, Dialer.Data]{
+class Dialer(val client: ActorRef, internetPointsDatabase: ActorRef) extends Actor with FSM[Dialer.States, Dialer.Data] with LoggingFSM[Dialer.States, Dialer.Data]{
 	import Dialer._
 	import InternetPointsDatabase._
 	import FSM._
@@ -48,9 +48,9 @@ class Dialer(internetPointsDatabase: ActorRef) extends Actor with FSM[Dialer.Sta
 	startWith(Idle, NullData)
 	
 	when(Idle){
-		case Ev(Dial(routingList)) => 
+		case Event(Dial(routingList),_) => 
 			goto(Dialing) using ((getActorRefs(routingList), Set.empty, Some(routingList.last)))
-		case Ev(_) => stay
+		case Event(_,_) => stay
 	}
 	
 	when(Dialing){
@@ -69,21 +69,21 @@ class Dialer(internetPointsDatabase: ActorRef) extends Actor with FSM[Dialer.Sta
 				stay using (tmp, setOfSentMsgs + actor, finalDestination)
 		}
 		case Event(Gateway.Routed(_,_,_), (map, setOfSentMsgs, finalDestination)) => {
-			stay using (map, setOfSentMsgs - self.sender.get, finalDestination)
+			stay using (map, setOfSentMsgs - sender, finalDestination)
 		}
 		
 		case Event(Gateway.Connected(from, to), (map, setOfSentMsgs, finalDestination)) => {
-			stay using (map, setOfSentMsgs - self.sender.get, finalDestination)
+			stay using (map, setOfSentMsgs - sender, finalDestination)
 		}
 		case Event(Timeout, _) => goto(Idle) using NullData 
 	}
 	
 	when(AwaitingConfirmation){
 		case Event(Gateway.Routed(_,_,_), (map, setOfSentMsgs, finalDestination)) => {
-			val tmp = setOfSentMsgs - self.sender.get // this doesn't work... We have to use IDs
+			val tmp = setOfSentMsgs - sender // this doesn't work... We have to use IDs
 			if(tmp.isEmpty) {
 				//Everything worked
-				goto(Connected) 
+				goto(Connected) using NullData forMax(5 seconds)
 			} else {
 				//We still have answers to await for
 				stay
@@ -91,10 +91,10 @@ class Dialer(internetPointsDatabase: ActorRef) extends Actor with FSM[Dialer.Sta
 		}
 		
 		case Event(Gateway.Connected(from, to), (map, setOfSentMsgs, finalDestination)) => {
-			val tmp = setOfSentMsgs - self.sender.get
+			val tmp = setOfSentMsgs - sender
 			if(tmp.isEmpty) {
 				//Everything worked
-				goto(Connected) 
+				goto(Connected) using NullData forMax(5 seconds)
 			} else {
 				//We still have answers to await for
 				stay
@@ -104,7 +104,8 @@ class Dialer(internetPointsDatabase: ActorRef) extends Actor with FSM[Dialer.Sta
 	}
 	
 	when(Connected) {
-		case Ev(Disconnect) => goto(Idle) using NullData
+		case Event(Disconnect,_) => goto(Idle) using NullData
+		case Event(StateTimeout,_) => goto(Idle) using NullData
 	}
 	
 	onTransition {
@@ -112,6 +113,10 @@ class Dialer(internetPointsDatabase: ActorRef) extends Actor with FSM[Dialer.Sta
 		case Dialing -> AwaitingConfirmation => cancelTimer("timeout"); setTimer("timeout", Timeout, 5 seconds, false)
 		case AwaitingConfirmation -> _ => cancelTimer("timeout")
 		case _ -> Idle => cancelTimer("timeout");
+	}
+	
+	onTransition {
+		case _ -> y => client ! y
 	}
 	
 	initialize

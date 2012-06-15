@@ -18,7 +18,7 @@ class InternetPointsDatabase extends Actor{
 	
 	def receive = {
 		case Add(id, internetPoint) => database += id -> internetPoint
-		case Get(id) => self.reply(IPFor(id, database.get(id)))
+		case Get(id) => sender ! IPFor(id, database.get(id))
 	}
 
 }

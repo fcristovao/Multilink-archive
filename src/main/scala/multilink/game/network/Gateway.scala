@@ -1,7 +1,6 @@
 package multilink.game.network
 
 import akka.actor.{Actor, FSM, LoggingFSM}
-import akka.event.EventHandler
 import akka.util.duration._
 
 import multilink.util.{Composable, ComposableFSM}
@@ -18,7 +17,6 @@ object Gateway {
 	case class Connected(from: Int, to: Int) extends Messages
 	case object DisableGateway extends Messages
 	case object EnableGateway extends Messages
-
 }
 
 
@@ -30,22 +28,22 @@ class Gateway() extends Actor with ComposableFSM[Gateway.State, Unit] with Loggi
   startWith(Enabled, Unit)
 
   whenIn(Enabled) {
-    case Ev(DisableGateway) =>
+    case Event(DisableGateway,_) =>
       goto(Disabled) forMax (2 seconds) replying(DisableGateway) replying ("hello")
-    case Ev(Route(from, through, to)) =>
+    case Event(Route(from, through, to),_) =>
     	stay replying Routed(from, through, to)
-    case Ev(Connect(from, to)) =>
+    case Event(Connect(from, to),_) =>
     	stay replying Connected(from, to)
-    case Ev(StateTimeout) =>
+    case Event(StateTimeout,_) =>
       goto(Disabled) forMax (2 seconds)
   }
 
   whenIn(Disabled) {
-    case Ev(DisableGateway) =>
-      EventHandler.info(this, "stopping from disable")
+    case Event(DisableGateway,_) =>
+      log.info("stopping from disable")
       stop
-    case Ev(StateTimeout) =>
-      EventHandler.info(this, "stopping")
+    case Event(StateTimeout,_) =>
+      log.info("stopping")
       stop
   }
 

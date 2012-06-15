@@ -1,10 +1,9 @@
 package multilink.util
 
-import akka.actor.{Actor, FSM, ActorRef}
+import akka.actor.{Actor, FSM, ActorRef, Props, ActorLogging}
 import akka.actor.Actor._
-import akka.event.EventHandler
 
-import akka.config.Config.config
+//import akka.config.Config.config
 
 trait Composable
 
@@ -112,9 +111,9 @@ object Composable {
 		case object Incoming extends Direction
 		case object Outgoing extends Direction
 		
-		private[util] case class DispatcherNode(val actorRef: ActorRef, val pathNr: Int = 0, val previous: Option[DispatcherNode] = None, var next: Option[DispatcherNode] = None){
+		private[util] case class DispatcherNode(val actor: Actor, val pathNr: Int = 0, val previous: Option[DispatcherNode] = None, var next: Option[DispatcherNode] = None, var actorRef: ActorRef = null){
 			override def toString(): String = {
-				return "∆("+actorRef+")" + (if(!next.isEmpty) ("⇄"+next.get.toString()) else "")
+				return "∆("+actor+")" + (if(!next.isEmpty) ("⇄"+next.get.toString()) else "")
 			}
 		}
 		
@@ -125,16 +124,16 @@ object Composable {
 		 * tmp >>> new Gateway >>> tmp
 		 * ^-- This would create only one Firewall instance (although it would receive the same message twice)
 		 */
-		private def toDispatcherNodeList(comb: ArrowOperator): List[(Option[DispatcherNode], Option[DispatcherNode])] = {
-			val alreadyCreated = scala.collection.mutable.Map[() => Actor, ActorRef]()
+		def toDispatcherNodeList(comb: ArrowOperator): List[(Option[DispatcherNode], Option[DispatcherNode])] = {
+			val alreadyCreated = scala.collection.mutable.Map[() => Actor, Actor]()
 			
 			def helper(comb: ArrowOperator, pathNr: Int = 0, previous: Option[DispatcherNode] = None): (Option[DispatcherNode], Option[DispatcherNode]) = {
 				comb match {
 					case Lift(actorFactory, inbound, outbound) => {
-						val actorRef = 
+						val actorInstance = 
 							alreadyCreated.get(actorFactory) match {
 								case None => {
-									val tmp = actorOf(actorFactory())
+									val tmp = actorFactory()
 									alreadyCreated += (actorFactory -> tmp)
 									tmp
 								}
@@ -143,7 +142,7 @@ object Composable {
 								}
 							}
 						
-						val result = Some(DispatcherNode(actorRef, pathNr, previous))
+						val result = Some(DispatcherNode(actorInstance, pathNr, previous))
 						(inbound, outbound) match {
 							case (true, true) => (result, result)
 							case (false, true) => (None, result)
@@ -171,8 +170,8 @@ object Composable {
 						anotherHelper(composables, previous)
 					}
 					case sp @ Splitter(splitted) => {
-						val actorRef = actorOf(new Dispatcher((splitted zip (0 until splitted.size)).map({case (comb, pathNr) => helper(comb, pathNr)})))
-						val result = Some(DispatcherNode(actorRef, pathNr, previous))
+						val actor = new Dispatcher((splitted zip (0 until splitted.size)).map({case (comb, pathNr) => helper(comb, pathNr)}))
+						val result = Some(DispatcherNode(actor, pathNr, previous))
 
 						(sp.incoming, sp.outgoing) match {
 							case (true, true) => (result, result)
@@ -199,9 +198,9 @@ object Composable {
 		import Dispatcher._
 		import scala.collection.mutable
 		
-		private sealed abstract class State(val sender: Option[ActorRef], var pathsCompleted: Int = 0, var replies: List[Any] = List())
-		private case class CommonState(override val sender: Option[ActorRef]) extends State(sender)
-		private case class ExtendedState(override val sender: Option[ActorRef], val processMsgReceived: Process) extends State(sender)
+		private sealed abstract class State(val sender: ActorRef, var pathsCompleted: Int = 0, var replies: List[Any] = List())
+		private case class CommonState(override val sender: ActorRef) extends State(sender)
+		private case class ExtendedState(override val sender: ActorRef, val processMsgReceived: Process) extends State(sender)
 		
 		/*
 		 * expectedNrMsgs: Expected Number of messages to reach the beginning of the path (with the Outgoing direction, that is, from the end to the beginning) 
@@ -215,12 +214,23 @@ object Composable {
 		def this(comb: ArrowOperator) = this(Dispatcher.toDispatcherNodeList(comb))
 		
 		override def preStart() = { 
-			// The .start() method in ActorRef is idempotent, so there's no problem in calling it twice (if it wasn't, one could easily use a set)
+			val alreadyCreated = scala.collection.mutable.Map[Actor, ActorRef]()
+			
 			def starter(chain: Option[DispatcherNode], direction: Direction): Unit = {
 				chain match {
 					case None => //nothing to do;
 					case Some(node) => {
-						node.actorRef.start(); 
+						val actorRef = alreadyCreated.get(node.actor) match {
+							case None => {
+								val tmp = context.actorOf(Props(node.actor),node.actor.toString)
+								alreadyCreated += (node.actor -> tmp)
+								tmp
+							}
+							case Some(x) => x
+						} 
+
+						node.actorRef = actorRef
+						
 						direction match {
 							case Incoming => starter(node.next, Incoming)
 							case Outgoing => starter(node.previous, Outgoing)
@@ -238,19 +248,15 @@ object Composable {
 		
 		private def tryToAnswer(generation: Int, state: State): Boolean = {
 			if(state.pathsCompleted == nrOfPaths){
-				if(state.sender.isEmpty){
-					EventHandler.info(this, "No sender in scope, can't reply"+ (if(!state.replies.isEmpty){" (reply(ies) would be ["+ (state.replies mkString "], [")+"])"} else {""})+".")
-				} else {
-					state match {
-						case ExtendedState(sender, Process(receivedGeneration, node, direction, msg)) => {
-							state.replies match {
-							  case Nil => sender.get ! Done(receivedGeneration, node, direction, msg)
-							  case listOfReplies => sender.get ! Reply(receivedGeneration, node, direction, listOfReplies)
-							}
+				state match {
+					case ExtendedState(sender, Process(receivedGeneration, node, direction, msg)) => {
+						state.replies match {
+						  case Nil => sender ! Done(receivedGeneration, node, direction, msg)
+						  case listOfReplies => sender ! Reply(receivedGeneration, node, direction, listOfReplies)
 						}
-						case state: CommonState => {
-							state.replies foreach (state.sender.get ! _)
-						}
+					}
+					case state: CommonState => {
+						state.replies foreach (state.sender ! _)
 					}
 				}
 				pendentSenders -= generation
@@ -338,7 +344,7 @@ object Composable {
 					assert(thisNode.actorRef==self)
 					
 					val nextGen = generation.next()
-					val state =  ExtendedState(self.sender, processMsg)
+					val state =  ExtendedState(sender, processMsg)
 					pendentSenders += nextGen -> state
 							
 					direction match {
@@ -347,7 +353,7 @@ object Composable {
 								state.pathsCompleted = nrOfPaths - startNodes.size
 								startNodes.foreach(node => node.actorRef ! Process(nextGen, node, direction, msg))
 							} else {
-								self.reply(Done(generationFromFather, thisNode, direction, msg))
+								sender ! Done(generationFromFather, thisNode, direction, msg)
 							}
 						}
 						case Outgoing => {
@@ -355,7 +361,7 @@ object Composable {
 								state.pathsCompleted = nrOfPaths - endNodes.size
 								endNodes.foreach(node => {awaitingPathReplies += (nextGen, node.pathNr) -> ReplyingState(1, Nil); node.actorRef ! Process(nextGen, node, direction, msg) })
 							} else {
-								self.reply(Done(generationFromFather, thisNode, direction, msg))
+								sender ! Done(generationFromFather, thisNode, direction, msg)
 							}
 						}
 					}
@@ -364,7 +370,7 @@ object Composable {
 			case anyOtherMsg => {
 				if(!startNodes.isEmpty) {
 					val nextGen = generation.next()
-					pendentSenders += nextGen -> CommonState(self.sender)
+					pendentSenders += nextGen -> CommonState(sender)
 					
 					startNodes.foreach(node => node.actorRef ! Process(nextGen, node, Incoming, anyOtherMsg))
 				}
@@ -372,14 +378,15 @@ object Composable {
 		}
 	}
 	
-	private trait LoggableDispatcher extends Dispatcher {
-	
-		val debugMsg = config.getBool("akka.actor.debug.receive", false)
+	private trait LoggableDispatcher extends Dispatcher with ActorLogging {
+		import com.typesafe.config.ConfigFactory
+		
+		val debugMsg = ConfigFactory.load().getBoolean("akka.actor.debug.receive")
 		
 		override abstract def receive : Receive = {
 			case msg => {
 				if(debugMsg){
-					EventHandler.debug(this, "received message: "+ msg)
+					log.debug("received message: "+ msg)
 				}
 				super.receive(msg)
 			}
