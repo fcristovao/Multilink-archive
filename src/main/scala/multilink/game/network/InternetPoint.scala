@@ -4,7 +4,7 @@ import akka.actor.{Actor, FSM, ActorRef}
 import akka.actor.Actor._
 
 object InternetPoint {
-	import multilink.util.Composable._
+	import multilink.util.composition.Composable._
 	
 	/* What we want to be able to do: 
 	 * (If one could also take the () after each class, it would be nice)

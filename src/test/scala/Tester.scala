@@ -3,14 +3,23 @@ import akka.actor.Actor._
 import akka.actor.Actor
 import akka.actor._
 
-import multilink.util._
-import multilink.util.Composable._
+import org.scalatest.FunSuite
+import org.scalatest.BeforeAndAfterAll
 
-object Tester {
-  def main(args : Array[String]) : Unit = {
-  	
-  	ActorSystem("TestSystem").actorOf(Props(new Actor {
-  		val ping = Lift(Ping(1))
+import multilink.util.composition.Composable._
+import multilink.util.composition._
+import multilink.util._
+
+class TestingSuite extends FunSuite with BeforeAndAfterAll{
+
+	val actorSystem = ActorSystem("TestSystem")
+	
+	override def beforeAll {
+	}
+	
+	test("Just testing!"){
+		actorSystem.actorOf(Props(new Actor {
+			val ping = Ping(1).lift
 	  	val tmp = ping.onlyOutgoing >>> Pong(2).onlyOutgoing >>> ping
 	  	
 	  	println(tmp)
@@ -25,7 +34,5 @@ object Tester {
 	  	}
   		
   	}))
-  	
-  	
-  }
+	}
 }

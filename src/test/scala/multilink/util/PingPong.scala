@@ -1,5 +1,6 @@
 package multilink.util
 
+import composition._
 
 case class Ping(val id: Int) extends ComposableActor {
 	
@@ -8,7 +9,7 @@ case class Ping(val id: Int) extends ComposableActor {
 	def process = {
 		case msg @ "hello" => println("Ping("+id+") "+iter.next()+"th msg received: "+msg); done
 		case msg @ "reply" => println("Ping("+id+") "+iter.next()+"th msg received: "+msg); reply("hello")
-	}
+	} 
 
 }
 

@@ -11,3 +11,6 @@ libraryDependencies ++= Seq(
 	"com.typesafe.akka" % "akka-remote" % "2.0.2"
 )
 
+libraryDependencies += "org.scalatest" %% "scalatest" % "1.8" % "test"
+
+libraryDependencies += "org.scala-lang" % "scala-swing" % "2.9.2"

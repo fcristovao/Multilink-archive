@@ -3,7 +3,7 @@ package multilink.game.network
 import akka.actor.{Actor, FSM, LoggingFSM}
 import akka.util.duration._
 
-import multilink.util.{Composable, ComposableFSM}
+import multilink.util.composition.{Composable, ComposableFSM}
 
 object Gateway {
   sealed trait State

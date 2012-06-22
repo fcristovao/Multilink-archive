@@ -6,13 +6,13 @@ import akka.actor._
 
 import scala.collection._
 
-import multilink.util.Composable._
-
 object AppStarter {
   def main(args : Array[String]) : Unit = {
   	
-  	val client = actorOf[Client].start();
+  	//val client = actorOf[Client].start();
   	
-  	client ! "something"
+  	//client ! "something"
+  	
+  	Client.main(args)
   }
 }

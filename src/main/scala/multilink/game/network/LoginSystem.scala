@@ -4,7 +4,7 @@ import akka.actor.Actor
 
 import scala.collection.mutable.Map
 
-import multilink.util.{Composable, ComposableActor, LoggableComposableActor}
+import multilink.util.composition.{Composable, ComposableActor, LoggableComposableActor}
 
 object LoginSystem{
   type Username = String

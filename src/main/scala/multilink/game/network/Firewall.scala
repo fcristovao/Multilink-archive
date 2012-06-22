@@ -3,7 +3,8 @@ package multilink.game.network
 import akka.actor.{Actor, FSM, LoggingFSM}
 import akka.util.duration._
 
-import multilink.util.{Composable, ComposableFSM}
+import multilink.util.composition.{Composable, ComposableFSM}
+import multilink.util.replication._
 
 object Firewall {
   sealed trait State
@@ -19,7 +20,7 @@ object Firewall {
 
 
 
-class Firewall(x: String) extends Actor with ComposableFSM[Firewall.State, Unit] with LoggingFSM[Firewall.State, Unit] {
+class Firewall(x: String) extends Actor with ComposableFSM[Firewall.State, Unit] with ReplicatableFSM[Firewall.State, Unit] with LoggingFSM[Firewall.State, Unit] {
   import FSM._
   import Firewall._
 
