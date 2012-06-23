@@ -32,7 +32,7 @@ class ReplicatorActorSuite extends FunSuite with BeforeAndAfterAll{
 	}
 	
 	
-	test("Test the replication of messages"){
+	ignore("Test the replication of messages"){
 		val testActor = actorSystem.actorOf(Props(new ReplicatorActorTest))
 		
 		testActor ! "qazwsx"

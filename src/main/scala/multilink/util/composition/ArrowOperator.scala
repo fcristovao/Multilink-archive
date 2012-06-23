@@ -3,7 +3,7 @@ package multilink.util.composition
 import akka.actor.{Actor, FSM, ActorRef, Props, ActorLogging}
 import akka.actor.Actor._
 
-sealed trait ArrowOperator[-A <: Composable]{
+sealed trait ArrowOperator[-A <: Actor with Composable]{
 	def lift: ArrowOperator[A]
 	def >>>[B <: A](other: ArrowOperator[B]): ArrowOperator[B]
 	def &&&[B <: A](other: ArrowOperator[B]): ArrowOperator[B] 
@@ -15,7 +15,7 @@ sealed trait ArrowOperator[-A <: Composable]{
 	def onlyOutgoing: ArrowOperator[A] 
 }
 
-case class Lift[A] (val actorFactory: () => Composable, override val incoming: Boolean = true, override val outgoing: Boolean = false) extends ArrowOperator[A] {
+case class Lift[A <: Actor with Composable : Manifest] (val actorFactory: () => A, override val incoming: Boolean = true, override val outgoing: Boolean = false) extends ArrowOperator[A] {
 	def lift = this
 	
 	def >>>[B <: A](other: ArrowOperator[B]): ArrowOperator[B] = {
@@ -32,12 +32,14 @@ case class Lift[A] (val actorFactory: () => Composable, override val incoming: B
 	def alsoOutgoing: ArrowOperator[A] = copy(incoming = true, outgoing = true)
 	def onlyOutgoing: ArrowOperator[A] = copy(incoming = false, outgoing = true)
 
-	override def toString(): String = {
-		"⇑("+actorFactory+")"
+	lazy val actorName:String = manifest[A].toString()
+	
+	override val toString: String = {
+		"⇑("+actorName+")"
 	}
 }
 
-case class Composition[A](composables: List[ArrowOperator[A]]) extends ArrowOperator[A] {
+case class Composition[A <: Actor with Composable](composables: List[ArrowOperator[A]]) extends ArrowOperator[A] {
 	def lift = this
 	
 	def >>>[B <: A](other: ArrowOperator[B]): ArrowOperator[B] = {
@@ -56,11 +58,11 @@ case class Composition[A](composables: List[ArrowOperator[A]]) extends ArrowOper
 	def alsoOutgoing: ArrowOperator[A] = copy(composables.map(_.alsoOutgoing))
 	def onlyOutgoing: ArrowOperator[A] = copy(composables.map(_.onlyOutgoing))
 	
-	override def toString(): String = {
+	override val toString: String = {
 		"("+(composables mkString " >>> ")+")"
 	}
 }
-case class Splitter[A](splittedInto: List[ArrowOperator[A]]) extends ArrowOperator[A] {
+case class Splitter[A <: Actor with Composable](splittedInto: List[ArrowOperator[A]]) extends ArrowOperator[A] {
 	def lift = this
 	
 	def >>>[B <:A](other: ArrowOperator[B]): ArrowOperator[B] = {
@@ -82,7 +84,7 @@ case class Splitter[A](splittedInto: List[ArrowOperator[A]]) extends ArrowOperat
 	def alsoOutgoing: ArrowOperator[A] = copy(splittedInto = splittedInto.map(_.alsoOutgoing))
 	def onlyOutgoing: ArrowOperator[A] = copy(splittedInto = splittedInto.map(_.onlyOutgoing))
 	
-	override def toString(): String = {
+	override val toString: String = {
 		"("+(splittedInto mkString " &&& ")+")"
 	}
 }

@@ -3,11 +3,12 @@ package multilink.util.composition
 import akka.actor.{Actor, ActorLogging}
 import akka.actor.Actor._
 import Composable._
+import CompositionNetwork._
 
 trait ComposableActor extends Actor with Composable {
 	this: Actor =>
 	
-	type Result = (Int, CompositionNode, Direction, Any) => Composable.Messages
+	type Result = (Int, CompositionNode, Direction, Any) => CompositionNetwork.Messages
 	
 	private val defaultFunction: PartialFunction[Any,Result] = {
 		case _ => done
@@ -22,8 +23,8 @@ trait ComposableActor extends Actor with Composable {
 		case Process(generation, thisNode, direction, msg) /* if process.isDefinedAt(msg) */=> 
 			
 			(process orElse defaultFunction)(msg)(generation, thisNode, direction, msg) match {
-				case x: Done if thisNode.next != None => {
-					val nextActorNode = thisNode.next.get
+				case x: Done if thisNode.next(direction) != None => {
+					val nextActorNode = thisNode.next(direction).get
 					nextActorNode.actorRef.forward(Process(generation, nextActorNode, direction, msg))
 				}
 				case x => sender ! x

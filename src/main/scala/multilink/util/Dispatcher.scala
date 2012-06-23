@@ -7,7 +7,7 @@ import multilink.util.composition._
 import multilink.util.composition.Composable._
 
 import scala.collection.mutable
-
+/*
 private[util] class Dispatcher private(final val nrOfPaths: Int, val startNodes: List[CompositionNode], val endNodes: List[CompositionNode]) extends Actor{
 	private def this(nrOfPaths: Int, tupleOfNodesList: (List[CompositionNode], List[CompositionNode])) = this(nrOfPaths, tupleOfNodesList._1, tupleOfNodesList._2)
 	private def this(intermediate: List[(Option[CompositionNode], Option[CompositionNode])]) = this(intermediate.size, intermediate.foldLeft((List[CompositionNode](),List[CompositionNode]()))((tupleList, tupleOption) => (tupleOption._1.toList ::: tupleList._1 ,  tupleOption._2.toList ::: tupleList._2)))
@@ -191,3 +191,4 @@ private[util] class Dispatcher private(final val nrOfPaths: Int, val startNodes:
 		}
 	}
 }
+*/

@@ -18,16 +18,18 @@ class TestingSuite extends FunSuite with BeforeAndAfterAll{
 	}
 	
 	test("Just testing!"){
+		
 		actorSystem.actorOf(Props(new Actor {
 			val ping = Ping(1).lift
 	  	val tmp = ping.onlyOutgoing >>> Pong(2).onlyOutgoing >>> ping
 	  	
 	  	println(tmp)
 	  	
+	  	/*
 	  	val tmp2 = context.actorOf(Props(tmp))
 	  	tmp2 ! "hello"
 	  	tmp2 ! "reply"
-	  	
+	  	*/
 	  	
 	  	def receive = {
 	  		case msg => println("Got "+msg+"!")

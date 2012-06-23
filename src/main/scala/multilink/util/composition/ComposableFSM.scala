@@ -7,7 +7,7 @@ import multilink.util.MultilinkFSM
 trait ComposableFSM[S,D] extends MultilinkFSM[S,D] with Composable {
 	this: Actor =>
 		
-	import Composable._
+	import CompositionNetwork._
 	
 	abstract override def whenIn(stateName: S, stateTimeout: Duration = null)(stateFunction: StateFunction) = {
 		val interceptor: StateFunction = {
