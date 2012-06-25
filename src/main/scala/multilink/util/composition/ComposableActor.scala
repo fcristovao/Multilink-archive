@@ -4,6 +4,7 @@ import akka.actor.{Actor, ActorLogging}
 import akka.actor.Actor._
 import Composable._
 import CompositionNetwork._
+import akka.actor.Props
 
 trait ComposableActor extends Actor with Composable {
 	this: Actor =>
@@ -18,6 +19,8 @@ trait ComposableActor extends Actor with Composable {
 	protected def done(generation: Int, node: CompositionNode, direction: Direction, msg: Any) = Done(generation, node, direction, msg) 
 	
 	def process: PartialFunction[Any, Result] 
+	
+	//override def sender = context.actorOf(Props(new Actor{def receive() = {case _ => }}))
 	
 	protected override def receive: Receive = {
 		case Process(generation, thisNode, direction, msg) /* if process.isDefinedAt(msg) */=> 

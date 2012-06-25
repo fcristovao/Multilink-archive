@@ -16,6 +16,63 @@ object CompositionNetwork{
 	case object Incoming extends Direction
 	case object Outgoing extends Direction
 	
+	private[util] abstract class CompositionNode1(
+			val receiveIncoming: Boolean,
+			val receiveOutgoing: Boolean,
+			val parent: Option[CompositionNode] = None,
+			val pathNr: Int = 1, 
+			val previous: Option[CompositionNode] = None, 
+			var next: Option[CompositionNode] = None) {
+		
+		import scala.collection.immutable
+	
+		def receives(direction: Direction) = direction match {case Incoming => receiveIncoming; case Outgoing => receiveOutgoing}
+		
+		private def _next(direction: Direction): Option[CompositionNode] = {
+			var result = direction match {case Incoming => next; case Outgoing => previous }
+			var found = false
+			while(result != None && !found){
+				val isAdmissible = result.get.receives(direction)
+				if(isAdmissible)
+					found = true
+				else
+					result = direction match {case Incoming => result.get.next; case Outgoing => result.get.previous }
+			}
+			result
+		}
+		
+		private lazy val nextMap = immutable.Map[Direction,Option[CompositionNode]](Incoming -> _next(Incoming), Outgoing-> _next(Outgoing)) 
+		
+		//memoized version of _next
+		def next(direction: Direction): Option[CompositionNode] = nextMap(direction)
+	}
+	
+	private[util] case class LiftNode(
+			val masterActor: ActorRef,
+			val actorName: String,
+			val actorRef: ActorRef,
+			val receiveIncoming: Boolean,
+			val receiveOutgoing: Boolean,
+			val pathNr: Int = 1, 
+			val previous: Option[CompositionNode] = None, 
+			var next: Option[CompositionNode] = None) {
+		
+	}
+	
+	private[util] case class SplitterNode(
+			val nrOfPaths: Int,
+			val startNodes: List[CompositionNode],
+			val endNodes: List[CompositionNode],
+			receiveIncoming: Boolean,
+			receiveOutgoing: Boolean,
+			parent: Option[CompositionNode] = None,
+			pathNr: Int = 1, 
+			previous: Option[CompositionNode] = None, 
+			next: Option[CompositionNode] = None) extends CompositionNode1(receiveIncoming, receiveOutgoing, parent, pathNr, previous, next){
+		
+	}
+	
+	
 	private[util] case class CompositionNode(
 			val masterActor: ActorRef,
 			val actorName: String,
@@ -32,18 +89,17 @@ object CompositionNetwork{
 			"∆("+actorName+")" + (if(!next.isEmpty) ("⇄"+next.get.toString()) else "")
 		}
 		
+		def receives(direction: Direction) = direction match {case Incoming => receiveIncoming; case Outgoing => receiveOutgoing}
+		
 		private def _next(direction: Direction): Option[CompositionNode] = {
-			var result = next
+			var result = direction match {case Incoming => next; case Outgoing => previous }
 			var found = false
 			while(result != None && !found){
-				val isAdmissible = direction match {
-					case Incoming => result.get.receiveIncoming
-					case Outgoing => result.get.receiveOutgoing
-				} 
+				val isAdmissible = result.get.receives(direction)
 				if(isAdmissible)
 					found = true
 				else
-					result = next
+					result = direction match {case Incoming => result.get.next; case Outgoing => result.get.previous }
 			}
 			result
 		}
@@ -83,12 +139,13 @@ object CompositionNetwork{
 						}
 					
 					val result = Some(CompositionNode(masterActor, lifted.actorName, actorRef, inbound, outbound, pathNr, previous))
-					(inbound, outbound) match {
+					/*(inbound, outbound) match {
 						case (true, true) => (result, result)
 						case (false, true) => (None, result)
 						case (true, false) => (result, previous)
 						//case (false, false) => Should never happen, so if it does, let it be signalled with the exception
-					}
+					}*/
+					(result,result)
 				}
 				case Composition(composables) => {
 					def anotherHelper(listOfComposables: List[ArrowOperator[A]], previous: Option[CompositionNode]): (Option[CompositionNode], Option[CompositionNode]) = {
@@ -115,12 +172,15 @@ object CompositionNetwork{
 					val actorRef = actorRefFactory.actorOf(Props(new CompositionNetwork(sp)), nameCounter + "-Splitted")
 					val result = Some(CompositionNode(masterActor, "Splitted", actorRef, sp.incoming, sp.outgoing, pathNr, previous))
 
+					/*
 					(sp.incoming, sp.outgoing) match {
 						case (true, true) => (result, result)
 						case (false, true) => (None, result)
 						case (true, false) => (result, previous)
 						//case (false, false) => Should never happen, so if it does, let it be signalled with the exception
 					}
+					*/
+					(result,result)
 				}
 			}
 		}
@@ -136,11 +196,24 @@ object CompositionNetwork{
 	
 		(nrOfPaths, startNodes, endNodes)
 	}
+	
+	
+	private def filterNodes(list: List[CompositionNode], direction: Direction): List[CompositionNode] = {
+		list.map(node => {
+			if(node.receives(direction))
+				Some(node)
+			else
+				node.next(direction)	
+		}).collect({case Some(x) => x})
+	}
 }
 
 class CompositionNetwork[A <: Actor with Composable](comb: ArrowOperator[A]) extends Actor {
 	import CompositionNetwork._
+	
 	val (nrOfPaths, startNodes, endNodes) = CompositionNetwork.fromArrowOperator(comb, self, context)
+	val incomingNodes = filterNodes(startNodes, Incoming)
+	val outgoingNodes = filterNodes(endNodes, Outgoing)
 	
 	assert(!(startNodes == Nil && endNodes == Nil))
 	
@@ -181,23 +254,20 @@ class CompositionNetwork[A <: Actor with Composable](comb: ArrowOperator[A]) ext
 	
 	protected override def receive = {
 			case Done(generation, fromNode, direction, msg) => {
-				val state = pendentSenders(generation)
-				direction match {
-					case Incoming => {
-						fromNode.next match {
-							case Some(node) => {
-								node.actorRef ! Process(generation, node, direction, msg)
-							}
-							case None => {
+				
+				fromNode.next(direction) match {
+					case Some(node) => {
+						node.actorRef ! Process(generation, node, direction, msg)
+					}
+					case None => {
+						val state = pendentSenders(generation)
+						direction match {
+							case Incoming => {
 								//We've reached the end of a path with a Done message, so no outgoing path has to be followed (because there were no replies along this path)
 								state.pathsCompleted += 1
 								tryToAnswer(generation, state)
 							}
-						}
-					}
-					case Outgoing => {
-						fromNode.previous match {
-							case None => { // There's no more nodes outgoing in this path
+							case Outgoing => {
 								val replyingState = awaitingPathReplies((generation, fromNode.pathNr))
 								replyingState.nrMsgsSoFar += 1
 								if(replyingState.nrMsgsSoFar == replyingState.expectedNrMsgs){
@@ -206,9 +276,6 @@ class CompositionNetwork[A <: Actor with Composable](comb: ArrowOperator[A]) ext
 									awaitingPathReplies -= ((generation, fromNode.pathNr))
 									tryToAnswer(generation, state)
 								}
-							}
-							case Some(node) => {
-								node.actorRef ! Process(generation, node, direction, msg) 
 							}
 						}
 					}
@@ -262,17 +329,17 @@ class CompositionNetwork[A <: Actor with Composable](comb: ArrowOperator[A]) ext
 						
 				direction match {
 					case Incoming => {
-						if(!startNodes.isEmpty) {
-							state.pathsCompleted = nrOfPaths - startNodes.size
-							startNodes.foreach(node => node.actorRef ! Process(nextGen, node, direction, msg))
+						if(!incomingNodes.isEmpty) {
+							state.pathsCompleted = nrOfPaths - incomingNodes.size
+							incomingNodes.foreach(node => node.actorRef ! Process(nextGen, node, direction, msg))
 						} else {
 							sender ! Done(generationFromFather, thisNode, direction, msg)
 						}
 					}
 					case Outgoing => {
-						if(!startNodes.isEmpty) {
-							state.pathsCompleted = nrOfPaths - endNodes.size
-							endNodes.foreach(node => {awaitingPathReplies += (nextGen, node.pathNr) -> ReplyingState(1, Nil); node.actorRef ! Process(nextGen, node, direction, msg) })
+						if(!outgoingNodes.isEmpty) {
+							state.pathsCompleted = nrOfPaths - outgoingNodes.size
+							outgoingNodes.foreach(node => {awaitingPathReplies += (nextGen, node.pathNr) -> ReplyingState(1, Nil); node.actorRef ! Process(nextGen, node, direction, msg) })
 						} else {
 							sender ! Done(generationFromFather, thisNode, direction, msg)
 						}
@@ -281,11 +348,11 @@ class CompositionNetwork[A <: Actor with Composable](comb: ArrowOperator[A]) ext
 			}
 		
 		case anyOtherMsg => {
-			if(!startNodes.isEmpty) {
+			if(!incomingNodes.isEmpty) {
 				val nextGen = generation.next()
 				pendentSenders += nextGen -> CommonState(sender)
 				
-				startNodes.foreach(node => node.actorRef ! Process(nextGen, node, Incoming, anyOtherMsg))
+				incomingNodes.foreach(node => node.actorRef ! Process(nextGen, node, Incoming, anyOtherMsg))
 			}
 		}
 	}
