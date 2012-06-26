@@ -62,6 +62,7 @@ case class Composition[A <: Actor with Composable](composables: List[ArrowOperat
 		"("+(composables mkString " >>> ")+")"
 	}
 }
+
 case class Splitter[A <: Actor with Composable](splittedInto: List[ArrowOperator[A]]) extends ArrowOperator[A] {
 	def lift = this
 	

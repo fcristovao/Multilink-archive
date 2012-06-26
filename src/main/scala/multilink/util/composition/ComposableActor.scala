@@ -9,6 +9,7 @@ import akka.actor.Props
 trait ComposableActor extends Actor with Composable {
 	this: Actor =>
 	
+	/*
 	type Result = (Int, CompositionNode, Direction, Any) => CompositionNetwork.Messages
 	
 	private val defaultFunction: PartialFunction[Any,Result] = {
@@ -21,17 +22,21 @@ trait ComposableActor extends Actor with Composable {
 	def process: PartialFunction[Any, Result] 
 	
 	//override def sender = context.actorOf(Props(new Actor{def receive() = {case _ => }}))
-	
-	protected override def receive: Receive = {
-		case Process(generation, thisNode, direction, msg) /* if process.isDefinedAt(msg) */=> 
-			
-			(process orElse defaultFunction)(msg)(generation, thisNode, direction, msg) match {
-				case x: Done if thisNode.next(direction) != None => {
-					val nextActorNode = thisNode.next(direction).get
-					nextActorNode.actorRef.forward(Process(generation, nextActorNode, direction, msg))
-				}
-				case x => sender ! x
+	*/
+	abstract override def receive: Receive = {
+		case Process(generation, thisNode, direction, msg) =>
+			if(super.receive.isDefinedAt(msg)){
+				super.receive(msg)
 			}
+			thisNode.next(direction) match{
+				case None => { //We reached the end of the path in this direction
+					sender ! Done(generation, thisNode, direction, msg)
+				}
+				case Some(node) => {
+					node.actorRef.forward(Process(generation, node, direction, msg))
+				}
+			}
+			
 	}
 }
 
