@@ -19,7 +19,7 @@ object ProxyActor{
 	case object Processing extends State
 	
 	case class Data(
-			messagesYetProcessing: Map[(Option[CompositionNode], Any, Direction), Int] = Map.empty,
+			messagesYetProcessing: Map[(Option[CompositionNetwork], Any, Direction), Int] = Map.empty,
 			answersReceived: Map[ActorRef,Queue[Any]] = Map.empty,
 			replies: Queue[Any] = Queue(),
 			currentGeneration: Int = -1,
@@ -58,7 +58,7 @@ class ProxyActor[A <: Actor with Composable](val proxyTo: ActorRef) extends Acto
 		}
 		
 		case Event(doneMsg @ CompositionNetwork.Done(generation, node, direction, msg), data @ Data(messagesYetProcessing, answersReceived, replies, currentGeneration, _)) if(answersReceived.contains(sender) && generation == currentGeneration) => {
-			def helper(node: Option[CompositionNode], msg: Any, map: Map[(Option[CompositionNode], Any, Direction), Int] = Map()) : Map[(Option[CompositionNode], Any, Direction), Int] = {
+			def helper(node: Option[CompositionNetwork], msg: Any, map: Map[(Option[CompositionNetwork], Any, Direction), Int] = Map()) : Map[(Option[CompositionNetwork], Any, Direction), Int] = {
 				if(node.isEmpty)
 					map + ((node, msg, Outgoing) -> 1)
 				else

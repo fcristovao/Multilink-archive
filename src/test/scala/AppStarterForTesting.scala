@@ -21,7 +21,7 @@ object AppStarterForTesting {
   		val tmp = Ping(1) >>> Ping(2) >>> Ping(3) >>> (Pong(4) &&& Pong(5) &&& Pong(6)) // >>> Ping(7) >>> Ping(8) >>> Ping(9)
 	  	println(tmp)
 	  	
-	  	val tmp2 = context.actorOf(Props(tmp))
+	  	val tmp2 = context.actorOf(Props(tmp),"tmp")
 	  	
 	  	self ! "begin"
 	  	

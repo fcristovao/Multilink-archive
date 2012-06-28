@@ -13,9 +13,10 @@ trait ComposableFSM[S,D] extends MultilinkFSM[S,D] with Composable {
 		val interceptor: StateFunction = {
 			case Event(Process(generation, thisNode, direction, msg), stateData) => {
 				val newState = (stateFunction orElse ender)(Event(msg, stateData))
+				val doneMsg = List(Done(generation, thisNode, direction, msg)) 
 				newState.replies match {
-					case Nil => newState.copy(replies = List(Done(generation, thisNode, direction, msg)))
-					case anythingElse => newState.copy(replies = List(Reply(generation, thisNode, direction, newState.replies)))
+					case Nil => newState.copy(replies = doneMsg)
+					case anythingElse => newState.copy(replies = newState.replies ::: doneMsg)
 				}
 			}
 		}
