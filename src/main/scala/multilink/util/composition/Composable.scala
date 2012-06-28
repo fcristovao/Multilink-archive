@@ -13,6 +13,6 @@ object Composable {
 	}
 	
 	implicit def arrowOp2Actor[A <: Actor with Composable](comb: ArrowOperator[A]): Actor = {
-		new CompositionNetwork(comb)
+		new CompositionDispatcher(comb)
 	}
 }

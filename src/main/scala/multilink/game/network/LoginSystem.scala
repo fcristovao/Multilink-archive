@@ -1,10 +1,8 @@
 package multilink.game.network
 
-import akka.actor.Actor
-
 import scala.collection.mutable.Map
-
-import multilink.util.composition.{Composable, ComposableActor, LoggableComposableActor}
+import multilink.util.composition.{Composable, ComposableActor} //, LoggableComposableActor}
+import multilink.util.MultilinkActor
 
 object LoginSystem{
   type Username = String
@@ -42,22 +40,24 @@ class LoginSystem extends Actor{
 }
 */
 
-case class LoginSystem() extends ComposableActor with LoggableComposableActor{
+case class LoginSystem() extends MultilinkActor with ComposableActor {
 	import LoginSystem._
   
   val database = Map[Username, Password]()
   
-  def process = {
-		case GetPasswordFor(username) => reply(
+  def react = {
+		case GetPasswordFor(username) => {
+    	val answer = 
     		database.get(username) match {
     			case None => UsernameDoesntExist(username)
     			case Some(password) => PasswordForUsername(username, password)
     		}
-    )
+    	sender ! answer
+		}
     case AddUsernameAndPassword(username, password) => {
     	database += username -> password
-    	done
     }
 	}
 
 }
+

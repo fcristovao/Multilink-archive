@@ -1,8 +1,11 @@
 package multilink.util
 
-import multilink.util.replication.ReplicatableActor
-import multilink.util.composition.ComposableActor
+import akka.actor.Actor
 
-trait MultilinkActor[State] extends ComposableActor with ReplicatableActor[State]{
-
+trait MultilinkActor extends Actor {
+	
+	def react : Receive
+	
+	def receive = react
 }
+

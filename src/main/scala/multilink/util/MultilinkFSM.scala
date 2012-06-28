@@ -3,8 +3,7 @@ package multilink.util
 import akka.actor.{Actor, FSM}
 import akka.util.Duration
 
-trait MultilinkFSM[S,D] extends FSM[S,D]{
-	this: Actor =>
+trait MultilinkFSM[S,D] extends Actor with FSM[S,D]{
 		
 	protected final val ender: StateFunction = {
 		case _ => stay

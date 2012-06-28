@@ -66,14 +66,14 @@ object CompositionNetwork{
 			next: Option[CompositionNode] = None,
 			parent: Option[CompositionNode] = None) extends CompositionNode(1, actorName, actorRef, receiveIncoming, receiveOutgoing, pathNr, previous, next, parent){
 		
-		def startNodes: List[CompositionNode] = List(this)
+		val startNodes: List[CompositionNode] = List(this)
 		
-		def endNodes: List[CompositionNode] = List(this)
+		val endNodes: List[CompositionNode] = List(this)
 	}
 	
 	private[util] class CompNode(
-			val startNodes: List[CompositionNode],
-			val endNodes: List[CompositionNode],
+			startNode: CompositionNode,
+			endNode: CompositionNode,
 			actorName: String,
 			actorRef: ActorRef,
 			receiveIncoming: Boolean,
@@ -83,13 +83,27 @@ object CompositionNetwork{
 			next: Option[CompositionNode] = None,
 			parent: Option[CompositionNode] = None) extends CompositionNode(1, actorName, actorRef, receiveIncoming, receiveOutgoing, pathNr, previous, next, parent){
 		
-
+		val startNodes: List[CompositionNode] = List(startNode)
+		
+		val endNodes: List[CompositionNode] = List(endNode)
+		
+		private def filterNodes(list: List[CompositionNode], direction: Direction): List[CompositionNode] = {
+			list.map(node => {
+				if(node.receives(direction))
+					Some(node)
+				else
+					node.next(direction)	
+			}).collect({case Some(x) => x})
+		}
+		
+		val incomingNodes = filterNodes(startNodes, Incoming)
+		val outgoingNodes = filterNodes(endNodes, Outgoing)
+		
+		override def toString = "CompNode"
 	}
 	
 	private[util] class SplitterNode(
-			nrOfPaths: Int,
-			val startNodes: List[CompositionNode],
-			val endNodes: List[CompositionNode],
+			paths: List[CompositionNode],
 			actorName: String,
 			actorRef: ActorRef,
 			receiveIncoming: Boolean,
@@ -97,11 +111,13 @@ object CompositionNetwork{
 			pathNr: Int = 1, 
 			previous: Option[CompositionNode] = None, 
 			next: Option[CompositionNode] = None,
-			parent: Option[CompositionNode] = None) extends CompositionNode(nrOfPaths, actorName, actorRef, receiveIncoming, receiveOutgoing, pathNr, previous, next, parent){
+			parent: Option[CompositionNode] = None) extends CompositionNode(paths.size, actorName, actorRef, receiveIncoming, receiveOutgoing, pathNr, previous, next, parent){
 		
 		assert(!(startNodes == Nil && endNodes == Nil))
 		
+		val startNodes: List[CompositionNode] = paths
 		
+		val endNodes: List[CompositionNode] = paths
 		
 		private def filterNodes(list: List[CompositionNode], direction: Direction): List[CompositionNode] = {
 			list.map(node => {
@@ -120,21 +136,20 @@ object CompositionNetwork{
 	private[util] class SplitterNodeDispatcher() extends Actor {
 		def receive() = {
 			case CompositionNetwork.Process(generation, node: SplitterNode, direction, msg) =>
-				direction match {
-					case Incoming => node.incomingNodes.foreach(node => node.actorRef ! CompositionNetwork.Process(generation, node, direction, msg))
-					case Outgoing => node.outgoingNodes.foreach(node => node.actorRef ! CompositionNetwork.Process(generation, node, direction, msg))
-				}
+				(direction match {
+					case Incoming => node.incomingNodes
+					case Outgoing => node.outgoingNodes
+				}).foreach(node => sender ! CompositionNetwork.Process(generation, node, direction, msg))
 		}
 	}
 	
 	private[util] class CompNodeDispatcher() extends Actor {
 		def receive() = {
 			case CompositionNetwork.Process(generation, node: CompNode, direction, msg) =>
-				direction match {
-					case x =>
-					//case Incoming => node.incomingNodes.foreach(node => node.actorRef ! CompositionNetwork.Process(generation, node, direction, msg))
-					//case Outgoing => node.outgoingNodes.foreach(node => node.actorRef ! CompositionNetwork.Process(generation, node, direction, msg))
-				}
+				(direction match {
+					case Incoming => node.incomingNodes
+					case Outgoing => node.outgoingNodes
+				}).foreach(node => sender ! CompositionNetwork.Process(generation, node, direction, msg))
 		}
 	}
 	
@@ -149,7 +164,27 @@ object CompositionNetwork{
 		val alreadyCreated = scala.collection.mutable.Map[() => Actor with Composable, ActorRef]()
 		var nameCounter = 1
 
-		def helper(comb: ArrowOperator[A], pathNr: Int = 1, previous: Option[CompositionNode] = None): (Option[CompositionNode], Option[CompositionNode]) = {
+		def setParents(node: CompositionNode, parent: Option[CompositionNode] = None) : CompositionNode = {
+			node.parent = parent
+			node match {
+				case _: LiftNode => {
+					//Nothing to do
+				}
+				case anythingElse => { //CompNode or SplitterNode
+					for(node <- anythingElse.startNodes){
+						var current : Option[CompositionNode] = Some(node)
+						while(current != None){
+							current.get.parent = parent
+							setParents(current.get, Some(anythingElse))
+							current = current.get.next
+						}
+					}
+				}
+			}
+			node
+		}
+		
+		def helper(comb: ArrowOperator[A], pathNr: Int = 1, previous: Option[CompositionNode] = None): CompositionNode = {
 			comb match {
 				case lifted @ Lift(actorFactory, inbound, outbound) => {
 					val actorRef = 
@@ -165,81 +200,75 @@ object CompositionNetwork{
 							}
 						}
 					
-					val result = Some(new LiftNode(lifted.actorName, actorRef, inbound, outbound, pathNr, previous))
-					(result,result)
+					new LiftNode(lifted.actorName, actorRef, inbound, outbound, pathNr, previous)
 				}
-				case Composition(composables) => {
+				case comp @ Composition(composables) => {
 					def anotherHelper(listOfComposables: List[ArrowOperator[A]], previous: Option[CompositionNode]): (Option[CompositionNode], Option[CompositionNode]) = {
 						listOfComposables match {
 							case head :: tail => {
-								val (result, newerPrevious) = helper(head, pathNr, previous)
-								val (next, newestPrevious) = anotherHelper(tail, newerPrevious)
-								result match {
-									case None => {
-										(next, newestPrevious)
-									}
-									case _ => {
-										result.get.next = next
-										(result, newestPrevious)
-									}
-								}
+								val result = Some(helper(head, pathNr, previous))
+								val (next, newestPrevious) = anotherHelper(tail, result)
+								result.get.next = next
+								(result, newestPrevious)
 							}
 							case Nil => (None, previous)
 						}
 					}
-					anotherHelper(composables, previous)
+					val (startNode, endNode) = anotherHelper(composables, previous)
+					
+					val actorRef = actorRefFactory.actorOf(Props[CompNodeDispatcher], nameCounter + "-Comp")
+					nameCounter+=1
+					
+					new CompNode(startNode.get, endNode.get, "Comp", actorRef, comp.incoming, comp.outgoing, pathNr, previous)
+					
 				}
 				case sp @ Splitter(splitted) => {
-					val intermediate = (splitted zip (1 until splitted.size+1)).map({case (comb, pathNr) => helper(comb, pathNr)})
-					val nrOfPaths = intermediate.size
-					val (startNodes, endNodes) = intermediate.foldLeft((List[CompositionNode](),List[CompositionNode]()))((tupleList, tupleOption) => (tupleOption._1.toList ::: tupleList._1, tupleOption._2.toList ::: tupleList._2))
+					val paths = (splitted zip (1 until splitted.size+1)).map({case (comb, pathNr) => helper(comb, pathNr)})
 		
 					val actorRef = actorRefFactory.actorOf(Props[SplitterNodeDispatcher], nameCounter + "-Splitted")
 					nameCounter+=1
 					
-					val result = Some(new SplitterNode(nrOfPaths, startNodes, endNodes, "Splitted", actorRef, sp.incoming, sp.outgoing, pathNr, previous))
-					
-					for(node <- startNodes){
-						var current : Option[CompositionNode] = Some(node)
-						while(current != None){
-							current.get.parent = result
-							current = current.get.next
-						}
-					}
-					
-					(result,result)
+					new SplitterNode(paths, "Splitted", actorRef, sp.incoming, sp.outgoing, pathNr, previous)
 				}
 			}
 		}
 			
-		comb match {
-			case Splitter(splitted) => {
-				helper(comb)._1.get
-			}
-			case anyOther => {
-				val (startNodes, endNodes) = helper(comb)
+		val rootOfNetwork = helper(comb)
 		
-				val actorRef = actorRefFactory.actorOf(Props[SplitterNodeDispatcher], nameCounter + "-Splitted")
-				nameCounter+=1
-					
-				val result = Some(new SplitterNode(1, List(startNodes.get), List(endNodes.get), "Splitted", actorRef, anyOther.incoming, anyOther.outgoing))
-				
-				for(node <- startNodes){
-					var current : Option[CompositionNode] = Some(node)
-					while(current != None){
-						current.get.parent = result
-						current = current.get.next
-					}
-				}
-					
-				result.get
-			}
-		}	
+		setParents(rootOfNetwork)
+		
 	}
 	
 	
+}
+
+
+class CompositionDispatcher[A <: Actor with Composable](comb: ArrowOperator[A]) extends Actor {
+	import CompositionNetwork._
 	
+	val rootCompositionNode = CompositionNetwork.fromArrowOperator(comb, context)
 	
+	private val generation = Iterator from 0
+	private val proxiesMap = mutable.Map[ActorRef, ActorRef]()
+	
+	def receive() = {
+		case msg => {
+			val nextGen = generation.next()
+			val tmp = sender
+			val proxy = proxiesMap.getOrElseUpdate(tmp,context.actorOf(Props(new ProxyActor(tmp))))
+			/*
+			val proxy = proxiesMap.get(sender) match {
+				case None => {
+					val tmp = context.actorOf(Props(new ProxyActor(sender)))
+					proxiesMap += (sender -> tmp)
+					tmp
+				} 
+				case Some(actor) => actor
+			}
+			*/
+			proxy ! CompositionNetwork.Process(nextGen, rootCompositionNode, Incoming, msg)
+		}
+	}
 	
 }
 

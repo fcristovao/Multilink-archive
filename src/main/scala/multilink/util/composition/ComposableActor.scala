@@ -1,14 +1,11 @@
 package multilink.util.composition
 
 import akka.actor.{Actor, ActorLogging}
-import akka.actor.Actor._
 import Composable._
 import CompositionNetwork._
-import akka.actor.Props
+import multilink.util.MultilinkActor
 
-trait ComposableActor extends Actor with Composable {
-	this: Actor =>
-	
+trait ComposableActor extends MultilinkActor with Composable{
 	/*
 	type Result = (Int, CompositionNode, Direction, Any) => CompositionNetwork.Messages
 	
@@ -24,22 +21,17 @@ trait ComposableActor extends Actor with Composable {
 	//override def sender = context.actorOf(Props(new Actor{def receive() = {case _ => }}))
 	*/
 	abstract override def receive: Receive = {
-		case Process(generation, thisNode, direction, msg) =>
+		case Process(generation, thisNode, direction, msg) => {
 			if(super.receive.isDefinedAt(msg)){
 				super.receive(msg)
 			}
-			thisNode.next(direction) match{
-				case None => { //We reached the end of the path in this direction
-					sender ! Done(generation, thisNode, direction, msg)
-				}
-				case Some(node) => {
-					node.actorRef.forward(Process(generation, node, direction, msg))
-				}
-			}
-			
+			sender ! Done(generation, thisNode, direction, msg)
+		}
 	}
+	
 }
 
+/*
 trait LoggableComposableActor extends ComposableActor with ActorLogging{
 	override abstract def receive : Receive = {
 		case msg @ Process(_, _, direction, realMsg) => {
@@ -50,3 +42,4 @@ trait LoggableComposableActor extends ComposableActor with ActorLogging{
 	}
 		
 }
+*/

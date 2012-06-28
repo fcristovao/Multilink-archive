@@ -1,9 +1,8 @@
 package multilink.util.replication
 
-import akka.actor.Actor
-import akka.actor.ActorLogging
+import multilink.util.MultilinkActor
 
-trait ReplicatableActor[State] extends Actor with Replicatable[State] {
+trait ReplicatableActor[State] extends MultilinkActor with Replicatable[State] {
 	import multilink.util.replication.Replicator
 	
 	def getState: State
