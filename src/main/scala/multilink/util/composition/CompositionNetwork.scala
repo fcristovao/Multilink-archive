@@ -33,7 +33,6 @@ object CompositionNetwork{
 	 * ^-- This would create only one Firewall instance (although it would receive the same message twice)
 	 */
 	def fromArrowOperator[A <: Actor with Composable](comb: ArrowOperator[A], actorRefFactory: ActorRefFactory): CompositionNetwork = {
-		val alreadyCreated = scala.collection.mutable.Map[() => Actor with Composable, ActorRef]()
 		var nameCounter = 1
 
 		def setParents(node: CompositionNetwork, parent: Option[CompositionNetwork] = None) : CompositionNetwork = {
@@ -58,21 +57,8 @@ object CompositionNetwork{
 		
 		def helper(comb: ArrowOperator[A], pathNr: Int = 1, previous: Option[CompositionNetwork] = None): CompositionNetwork = {
 			comb match {
-				case lifted @ Lift(actorFactory, inbound, outbound) => {
-					val actorRef = 
-						alreadyCreated.get(actorFactory) match {
-							case None => {
-								val tmp = actorRefFactory.actorOf(Props(actorFactory), nameCounter + "-" + lifted.actorName)
-								nameCounter+=1
-								alreadyCreated += (actorFactory -> tmp)
-								tmp
-							}
-							case Some(x) => {
-								x
-							}
-						}
-					
-					new LiftNode(lifted.actorName, actorRef, inbound, outbound, pathNr, previous)
+				case Lift(actorRef, actorName, inbound, outbound) => {
+					new LiftNode(actorName, actorRef, inbound, outbound, pathNr, previous)
 				}
 				case comp @ Composition(composables) => {
 					val actorRef = actorRefFactory.actorOf(Props[NodeHelperDispatcher], nameCounter + "-Comp")
