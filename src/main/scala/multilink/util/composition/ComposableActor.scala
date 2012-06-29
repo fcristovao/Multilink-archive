@@ -27,6 +27,7 @@ trait ComposableActor extends MultilinkActor with Composable{
 			}
 			sender ! Done(generation, thisNode, direction, msg)
 		}
+		case msg if super.receive.isDefinedAt(msg) => super.receive(msg)
 	}
 	
 }
