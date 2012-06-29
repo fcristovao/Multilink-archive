@@ -2,39 +2,33 @@
 import akka.actor.Actor._
 import akka.actor.{Actor, ActorLogging}
 import akka.actor._
-
 import multilink.util.replication._
-
 import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfterAll
+import multilink.util.MultilinkActor
+import multilink.game.network.InternetPoint
+import akka.testkit.TestKit
+import akka.testkit.ImplicitSender
 
-class ReplicatorActorSuite extends FunSuite with BeforeAndAfterAll{
-	val actorSystem = ActorSystem("TestSystem")
-	
-	
-	class TestActor extends Actor {
-		val nullPF = new PartialFunction[Any, Unit] { 
-			def isDefinedAt(v: Any) = false; 
-			def apply(v: Any) = throw new MatchError 
-		} 
-		
-		def receive: Receive = nullPF
+object ReplicatorActorSuite {
+	class ReplicatorActorTest extends MultilinkActor with Replicator[ReplicatorActorTest]{
+		def react = {
+			case x => 
+		}
 	}
+}
+
+
+class ReplicatorActorSuite extends TestKit(ActorSystem("TestSystem")) with ImplicitSender with FunSuite with BeforeAndAfterAll{
 	
-	class ReplicatorActorTest extends TestActor with Replicator{
-		//override def receive = {
-		//	case x => 
-		//}
+	override def afterAll{
+		system.shutdown()
 	}
-	
-	override def beforeAll {
-		
-	}
-	
 	
 	ignore("Test the replication of messages"){
-		val testActor = actorSystem.actorOf(Props(new ReplicatorActorTest))
+		val testActor = system.actorOf(Props(new InternetPoint(1)))
 		
 		testActor ! "qazwsx"
 	}
 }
+
