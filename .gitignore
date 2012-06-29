@@ -5,3 +5,4 @@ bin/
 .classpath
 .cache
 target/
+AppStarterForTesting.scala
