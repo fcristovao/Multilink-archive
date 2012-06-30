@@ -51,7 +51,7 @@ class Client extends Actor {
 	val internic = mutable.Map[Int, ActorRef]()
 	
 	for(i <- 1 to 10){
-		ipdb ! InternetPointsDatabase.Add(i, context.actorOf(Props(InternetPoint(i)),"InternetPoint(%d)".format(i)))
+		ipdb ! InternetPointsDatabase.Add(i, context.actorOf(Props(new InternetPoint(i)),"InternetPoint(%d)".format(i)))
 	}
 
 	val routingList =

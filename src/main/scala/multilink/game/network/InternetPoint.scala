@@ -3,6 +3,9 @@ package multilink.game.network
 import akka.actor.{Actor, FSM, ActorRef}
 import akka.actor.Actor._
 import akka.actor.ActorRefFactory
+import multilink.util.replication.Replicator
+import akka.actor.Props
+
 
 object InternetPoint{ //} extends Actor{
 	import multilink.util.composition.Composable._
@@ -19,14 +22,24 @@ object InternetPoint{ //} extends Actor{
 		(FileServer() &&& logger &&& Console() )
 	*/
 	
-	def apply(ip: Int)(implicit context: ActorRefFactory): Actor = {
-		new Logger().onlyOutgoing >>> new Gateway() >>> new Firewall("test "+ip) >>> LoginSystem()
-		//new Actor{ def receive = {case _ => }}
-	}
+}
 
-	/*
-	def receive = {
-		case _ =>
+
+class InternetPoint(ip: Int) extends Replicator[InternetPoint]{
+	
+	val systems = {
+		val logger = new Logger().lift
+		val allSystem = 
+			logger.onlyOutgoing >>>
+			new Gateway() >>>
+			new Firewall("test") >>>
+			new LoginSystem ///>>>
+			//(new FileServer() &&& logger &&& Console())
+			
+		context.actorOf(Props(allSystem),"systems")
 	}
-	*/
+	
+	def react() = {
+		case msg => systems.forward(msg)
+	}
 }
