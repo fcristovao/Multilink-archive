@@ -40,9 +40,9 @@ class ProxyActor[A <: Actor with Composable](val proxyTo: ActorRef) extends Acto
 	startWith(Idle, Data())
 	
 	when(Idle){
-		case Event(CompositionNetwork.Process(generation, node, direction, msg), Data(_, _, _, _, awaitingProcessMsgs)) if (node.parent == None && node.previous == None)=> {
+		case Event(thisMsg @ CompositionNetwork.Process(generation, node, Incoming, msg), _) if (node.parent == None && node.previous == None)=> {
 			node.actorRef ! CompositionNetwork.Process(generation, node, Incoming, msg)
-			goto(Processing) using Data(currentGeneration = generation, messagesYetProcessing = Map((node.parent, msg, direction) -> 1), awaitingProcessMsgs = awaitingProcessMsgs)
+			goto(Processing) using Data(currentGeneration = generation, messagesYetProcessing = Map((node.parent, msg, Incoming) -> 1))
 		}
 	}
 		
@@ -105,7 +105,7 @@ class ProxyActor[A <: Actor with Composable](val proxyTo: ActorRef) extends Acto
 						} else{
 							val (msg, newQueue) = awaitingProcessMsgs.dequeue
 							self ! msg
-							goto(Idle) using Data(awaitingProcessMsgs = newQueue)
+							stay using Data(currentGeneration = msg.generation, awaitingProcessMsgs = newQueue)
 						}
 					} else {
 						//nothing to do
@@ -124,42 +124,12 @@ class ProxyActor[A <: Actor with Composable](val proxyTo: ActorRef) extends Acto
 			}
 			
 		}
-		case Event(someMsg, data @ Data(_, answersReceived, _, _, _))  => {
+		case Event(someMsg, data @ Data(_, answersReceived, _, _, _)) if !someMsg.isInstanceOf[CompositionNetwork.Messages] => {
+			
 			val queueSoFar = answersReceived.getOrElse(sender,Queue())
 			
 			stay using data.copy(answersReceived = answersReceived + (sender -> (queueSoFar enqueue someMsg)))
 		}
 	}
-	
-	/* Backup
-	node.next(direction) match {
-				case None => { //reached the end of the path
-					val remainingNrOfMessages = messagesYetProcessing((node.parent, msg, direction)) - 1
-					if(remainingNrOfMessages == 0) {
-						val newMessagesYetProcessing = messagesYetProcessing - ((node.parent,msg, direction))
-						
-						if(node.parent.isEmpty){
-							if(newMessagesYetProcessing.isEmpty){
-								//There are no other messages to wait
-								answerToOriginalSender(replies)
-								stay using PAData()
-							} else {
-								//nothing to do
-								stay using data.copy(messagesYetProcessing = newMessagesYetProcessing)
-							}
-						} else {
-							self ! Done(generation, node.parent.get, direction, msg)
-							stay using data.copy(messagesYetProcessing = newMessagesYetProcessing)
-						}
-					} else {
-						stay using data.copy(messagesYetProcessing.updated((node.parent, msg, direction), remainingNrOfMessages))
-					}
-				}
-				case Some(nextNode) => {
-					nextNode.actorRef ! CompositionNetwork.Process(generation, nextNode, direction, msg)
-					stay
-				}
-			}
-			*/
 	
 }

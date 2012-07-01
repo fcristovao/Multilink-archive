@@ -25,7 +25,7 @@ object Lift{
 	import akka.util.Duration
 	import akka.util.duration._
 	
-	private class LifterActor extends Actor {
+	private case class LifterActor() extends Actor {
 		// It just provides an unique number for each pair (ActorRefFactory, String)
 		import scala.collection.mutable.Map
 		
@@ -42,9 +42,8 @@ object Lift{
 	} 
 	
 	var lifterActor: Option[ActorRef] = None 
-	implicit val timeout: Timeout = 5 seconds
 	
-	def actorNameFromManifest[A <: Actor with Composable](manifest: Manifest[A]) = manifest.toString()
+	def actorNameFromManifest[A <: Actor with Composable](manifest: Manifest[A]) = manifest.toString().split('.').last
 	
 	def apply[A <: Actor with Composable](actorFactory: () => A, actorRefFactory: ActorRefFactory, manifest: Manifest[A]) = {
 		val lifter = lifterActor match {
@@ -60,7 +59,7 @@ object Lift{
 		}
 		
 		val actorName = actorNameFromManifest(manifest)
-		val id : Int = Await.result(ask(lifter,(actorRefFactory, actorName)).mapTo[Int], Duration.Inf)
+		val id : Int = Await.result(ask(lifter,(actorRefFactory, actorName))(5 seconds).mapTo[Int], Duration.Inf)
 		val finalActorName = actorName + (if(id==0) "" else id.toString)
 		
 		val actorRef = actorRefFactory.actorOf(Props(actorFactory), finalActorName)
