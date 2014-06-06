@@ -9,40 +9,11 @@ import akka.actor._
 import scala.collection.mutable
 
 import multilink.game.network._
-import multilink.game.software._
+import multilink.game.client.software._
 import multilink.game.client._
 
 import scala.swing._ 
 import scala.swing.event._
-
-object Client extends SimpleSwingApplication { 
-	val actorSystem = ActorSystem("Multilink")
-	val client = actorSystem.actorOf(Props[Client], name = "Client")
-	
-	val label = new Label {
-		text = Dialer.Idle.toString()
-	}
-	
-	def top = new MainFrame {
-		title = "First Swing App" 
-		val button = new Button {
-			text = "Connect" 
-		}
-		
-		contents = new BoxPanel(Orientation.Vertical) {
-			contents += button 
-			contents += label 
-			border = Swing.EmptyBorder(30, 30, 10, 30)
-		}
-		listenTo(button) 
-		reactions += {
-			case ButtonClicked(b) =>
-				client ! "test"
-		}
-	}
-	
-	
-}
 
 
 class Client extends Actor {

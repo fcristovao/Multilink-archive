@@ -1,9 +1,9 @@
-package multilink.game.software
+package multilink.game.client.software
 
 import akka.actor.Actor
 import akka.actor.ActorRef
 
-import multilink.game.network.LoginSystem
+import multilink.game.network.intranet.LoginSystem
 
 object PasswordBreaker{
   sealed trait Messages

@@ -1,10 +1,9 @@
-package multilink.game.network
+package multilink.game.network.intranet
 
-import akka.actor.{Actor, FSM, LoggingFSM}
+import akka.actor.{Actor, LoggingFSM}
 import scala.concurrent.duration._
 
-import multilink.util.composition.{Composable, ComposableFSM}
-import multilink.util.replication._
+import multilink.util.composition.ComposableFSM
 
 object Firewall {
   sealed trait State
@@ -21,7 +20,6 @@ object Firewall {
 
 
 class Firewall(x: String) extends Actor with ComposableFSM[Firewall.State, Unit] with ReplicatableFSM[Firewall.State, Unit] with LoggingFSM[Firewall.State, Unit] {
-  import FSM._
   import Firewall._
 
   startWith(Active, Unit)

@@ -1,9 +1,9 @@
-package multilink.game.network
+package multilink.game.network.intranet
 
-import akka.actor.{Actor, FSM, LoggingFSM}
+import akka.actor.{Actor, LoggingFSM}
 import scala.concurrent.duration._
 
-import multilink.util.composition.{Composable, ComposableFSM}
+import multilink.util.composition.ComposableFSM
 
 object Gateway {
   sealed trait State
@@ -22,7 +22,6 @@ object Gateway {
 
 
 class Gateway() extends Actor with ComposableFSM[Gateway.State, Unit] with LoggingFSM[Gateway.State, Unit] {
-  import FSM._
   import Gateway._
 
   startWith(Enabled, Unit)

@@ -1,4 +1,4 @@
-package multilink.game.network
+package multilink.game.network.intranet
 
 import akka.actor.{Actor, FSM, LoggingFSM}
 import scala.collection.mutable.LinkedList

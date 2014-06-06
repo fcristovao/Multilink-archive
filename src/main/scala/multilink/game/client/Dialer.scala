@@ -3,6 +3,7 @@ package multilink.game.client
 import akka.actor._
 import multilink.game.network.Gateway
 import scala.concurrent.duration._
+import multilink.game.client.InternetPointsDatabase
 
 object Dialer {
 	sealed trait States

@@ -1,4 +1,4 @@
-package multilink.game.network
+package multilink.game.network.intranet
 
 import scala.collection.mutable.Map
 import multilink.util.composition.{Composable, ComposableActor}
