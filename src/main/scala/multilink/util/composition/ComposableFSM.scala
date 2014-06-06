@@ -1,7 +1,7 @@
 package multilink.util.composition
 
 import akka.actor.{Actor, FSM}
-import akka.util.Duration
+import scala.concurrent.duration._
 import multilink.util.MultilinkFSM
 
 trait ComposableFSM[S,D] extends MultilinkFSM[S,D] with Composable {

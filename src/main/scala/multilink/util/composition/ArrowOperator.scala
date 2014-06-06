@@ -15,15 +15,12 @@ sealed trait ArrowOperator[-A <: Actor with Composable]{
 }
 
 object Lift{
-	import akka.dispatch.Await
-	import akka.dispatch.Future
+	import scala.concurrent.Await
 	import akka.pattern.ask
 	import akka.actor.ActorRefFactory
 	import akka.actor.ActorSystem
 	import akka.actor.ActorContext
-	import akka.util.Timeout
-	import akka.util.Duration
-	import akka.util.duration._
+  import scala.concurrent.duration._
 	
 	private case class LifterActor() extends Actor {
 		// It just provides an unique number for each pair (ActorRefFactory, String)
@@ -52,7 +49,7 @@ object Lift{
 					case actorSystem : ActorSystem => actorSystem
 					case actorContext : ActorContext => actorContext.system
 				}
-				lifterActor = Some(actorSystem.actorOf(Props[LifterActor],"lifter"))
+				lifterActor = Some(actorSystem.actorOf(Props(new LifterActor),"lifter"))
 				lifterActor.get
 			}
 			case Some(lifterActor) => lifterActor

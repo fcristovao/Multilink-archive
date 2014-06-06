@@ -11,6 +11,7 @@ import akka.actor.Props
 import org.scalatest.WordSpec
 import scala.collection.mutable.Queue
 import akka.actor.Actor
+import com.typesafe.config.ConfigFactory
 
 object CompositionSuite{
 	
@@ -57,7 +58,7 @@ object CompositionSuite{
 }
 
 
-class CompositionSuite extends TestKit(ActorSystem("TestSystem")) with ImplicitSender with WordSpec with BeforeAndAfterAll{
+class CompositionSuite extends TestKit(ActorSystem("TestSystem", ConfigFactory.load("application-test"))) with ImplicitSender with WordSpec with BeforeAndAfterAll{
 	import CompositionSuite._
 	import Composable._
 	import akka.util.duration._

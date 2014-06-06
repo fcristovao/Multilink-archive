@@ -1,7 +1,7 @@
 package multilink.util.replication
 
 import akka.actor.{Actor, FSM}
-import akka.util.Duration
+import scala.concurrent.duration._
 
 import multilink.util.MultilinkFSM
 

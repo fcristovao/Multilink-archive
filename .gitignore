@@ -4,5 +4,6 @@ bin/
 .project
 .classpath
 .cache
+.idea/
 target/
 AppStarterForTesting.scala

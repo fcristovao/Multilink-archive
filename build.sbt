@@ -2,16 +2,14 @@ name := "Multilink"
 
 version := "0.0"
 
-scalaVersion := "2.9.2"
+scalaVersion := "2.10.4"
 
-resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
- 
 libraryDependencies ++= Seq(
-	"com.typesafe.akka" % "akka-actor" % "2.0.2",
-	"com.typesafe.akka" % "akka-remote" % "2.0.2",
-	"com.typesafe.akka" % "akka-testkit" % "2.0.2" % "test"
+  "com.typesafe.akka" %% "akka-actor" % "2.3.3",
+  "com.typesafe.akka" %% "akka-remote" % "2.3.3",
+  "com.typesafe.akka" %% "akka-testkit" % "2.3.3" % "test",
+  "org.scalamock" %% "scalamock-scalatest-support" % "3.0.1" % "test",
+  "org.scalatest" % "scalatest_2.10" % "2.1.4" % "test"
 )
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "1.8" % "test"
-
-libraryDependencies += "org.scala-lang" % "scala-swing" % "2.9.2"
+libraryDependencies += "org.scala-lang" % "scala-swing" % "2.10.4"

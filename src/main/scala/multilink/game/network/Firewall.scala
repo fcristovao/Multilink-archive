@@ -1,7 +1,7 @@
 package multilink.game.network
 
 import akka.actor.{Actor, FSM, LoggingFSM}
-import akka.util.duration._
+import scala.concurrent.duration._
 
 import multilink.util.composition.{Composable, ComposableFSM}
 import multilink.util.replication._

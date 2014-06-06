@@ -10,6 +10,6 @@ trait Replicatable[State]{
 }
 
 object Replicatable {
-	sealed trait Messages
-	case class Replicate(master: ActorRef, timestamp: Long, msg: Any)
+	private[replication] sealed trait Messages
+	private[replication] sealed case class Replicate(master: ActorRef, timestamp: Long, msg: Any)
 }

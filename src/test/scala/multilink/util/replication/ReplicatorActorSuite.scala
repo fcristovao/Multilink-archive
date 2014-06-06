@@ -2,6 +2,7 @@
 import akka.actor.Actor._
 import akka.actor.{Actor, ActorLogging}
 import akka.actor._
+import com.typesafe.config.ConfigFactory
 import multilink.util.replication._
 import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfterAll
@@ -19,13 +20,13 @@ object ReplicatorActorSuite {
 }
 
 
-class ReplicatorActorSuite extends TestKit(ActorSystem("TestSystem")) with ImplicitSender with FunSuite with BeforeAndAfterAll{
+class ReplicatorActorSuite extends TestKit(ActorSystem("TestSystem", ConfigFactory.load("application-test"))) with ImplicitSender with FunSuite with BeforeAndAfterAll{
 	
 	override def afterAll{
 		system.shutdown()
 	}
 	
-	ignore("Test the replication of messages"){
+	test("Test the replication of messages"){
 		val testActor = system.actorOf(Props(new InternetPoint(1)))
 		
 		testActor ! "qazwsx"

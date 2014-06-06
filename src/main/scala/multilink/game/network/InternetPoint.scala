@@ -28,6 +28,7 @@ object InternetPoint{ //} extends Actor{
 class InternetPoint(ip: Int) extends Replicator[InternetPoint]{
 	
 	val systems = {
+		val tmp = context
 		val logger = new Logger().lift
 		val allSystem = 
 			logger.onlyOutgoing >>>

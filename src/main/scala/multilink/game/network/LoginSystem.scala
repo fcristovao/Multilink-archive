@@ -1,8 +1,9 @@
 package multilink.game.network
 
 import scala.collection.mutable.Map
-import multilink.util.composition.{Composable, ComposableActor} //, LoggableComposableActor}
+import multilink.util.composition.{Composable, ComposableActor}
 import multilink.util.MultilinkActor
+import multilink.util.replication.ReplicatableActor
 
 object LoginSystem{
   type Username = String
@@ -40,9 +41,12 @@ class LoginSystem extends Actor{
 }
 */
 
-case class LoginSystem() extends MultilinkActor with ComposableActor {
+case class LoginSystem() extends MultilinkActor with ReplicatableActor[Unit] with ComposableActor {
 	import LoginSystem._
   
+	def getState = ()
+	def setState(x: Unit) : Unit = ()
+	
   val database = Map[Username, Password]()
   
   def react = {
