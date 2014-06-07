@@ -19,7 +19,7 @@ object Firewall {
 
 
 
-class Firewall(x: String) extends Actor with ComposableFSM[Firewall.State, Unit] with ReplicatableFSM[Firewall.State, Unit] with LoggingFSM[Firewall.State, Unit] {
+class Firewall(x: String) extends Actor with ComposableFSM[Firewall.State, Unit] with LoggingFSM[Firewall.State, Unit] {
   import Firewall._
 
   startWith(Active, Unit)
@@ -28,7 +28,7 @@ class Firewall(x: String) extends Actor with ComposableFSM[Firewall.State, Unit]
     case Event(DisableFirewall,_) =>
       goto(Disabled) 
     case Event(BypassFirewall,_) =>
-    	log.info("Bypassing Firewall");
+    	log.info("Bypassing Firewall")
       goto(Bypassed) forMax (2 seconds) 
     case Event(StateTimeout,_) =>
       goto(Disabled) forMax (2 seconds)
@@ -46,5 +46,5 @@ class Firewall(x: String) extends Actor with ComposableFSM[Firewall.State, Unit]
       stop
   }
 
-  initialize // this checks validity of the initial state and sets up timeout if needed
+  initialize()
 }

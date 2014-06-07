@@ -2,16 +2,25 @@ package multilink.game.client
 
 import scala.collection.mutable.Map
 import akka.actor._
+import scaldi.{Injectable, Injector}
+import multilink.game.network.internet.InternetPointAddress
 
 object InternetPointsDatabase {
 	sealed trait Messages
 	
-	case class Add(id: Int, internetPoint: ActorRef) extends Messages
-	case class Get(id: Int) extends Messages
-	case class IPFor(id: Int, internetPoint: Option[ActorRef]) extends Messages
+	case class Add(id: InternetPointAddress, internetPoint: ActorRef) extends Messages
+	case class Get(id: InternetPointAddress) extends Messages
+	case class IPFor(id: InternetPointAddress, internetPoint: Option[ActorRef]) extends Messages
 }
 
-class InternetPointsDatabase extends Actor{
+class InternetPointsDatabaseProducer(implicit injector: Injector) extends IndirectActorProducer with Injectable {
+  override def produce() = inject [InternetPointsDatabase]
+  override def actorClass = classOf[InternetPointsDatabase]
+}
+
+trait InternetPointsDatabase extends Actor
+
+class SimpleInternetPointsDatabase extends InternetPointsDatabase {
 	import InternetPointsDatabase._
 	
 	val database = Map[Int, ActorRef]()

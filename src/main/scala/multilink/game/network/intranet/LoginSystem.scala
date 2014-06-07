@@ -2,8 +2,6 @@ package multilink.game.network.intranet
 
 import scala.collection.mutable.Map
 import multilink.util.composition.{Composable, ComposableActor}
-import multilink.util.MultilinkActor
-import multilink.util.replication.ReplicatableActor
 
 object LoginSystem{
   type Username = String
@@ -41,7 +39,7 @@ class LoginSystem extends Actor{
 }
 */
 
-case class LoginSystem() extends MultilinkActor with ReplicatableActor[Unit] with ComposableActor {
+trait LoginSystem extends ComposableActor {
 	import LoginSystem._
   
 	def getState = ()
@@ -49,7 +47,7 @@ case class LoginSystem() extends MultilinkActor with ReplicatableActor[Unit] wit
 	
   val database = Map[Username, Password]()
   
-  def react = {
+  abstract override def receive = {
 		case GetPasswordFor(username) => {
     	val answer = 
     		database.get(username) match {

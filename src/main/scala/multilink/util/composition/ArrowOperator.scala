@@ -59,7 +59,7 @@ object Lift{
 		val id : Int = Await.result(ask(lifter,(actorRefFactory, actorName))(5 seconds).mapTo[Int], Duration.Inf)
 		val finalActorName = actorName + (if(id==0) "" else id.toString)
 		
-		val actorRef = actorRefFactory.actorOf(Props(actorFactory), finalActorName)
+		val actorRef = null //actorRefFactory.actorOf(Props(actorFactory()), finalActorName)
 		
 		new Lift[A](actorRef,actorName)
 	}

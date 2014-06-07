@@ -2,7 +2,6 @@ package multilink.util.composition
 
 import akka.actor.{FSM, Actor}
 import scala.concurrent.duration._
-import multilink.util.MultilinkFSM
 
 trait ComposableFSM[S, D] extends FSM[S, D] with Composable {
   this: Actor =>
@@ -13,7 +12,7 @@ trait ComposableFSM[S, D] extends FSM[S, D] with Composable {
     case _ => stay
   }
 
-  abstract def whenIn(stateName: S, stateTimeout: FiniteDuration = null)(stateFunction: StateFunction) = {
+  def whenIn(stateName: S, stateTimeout: FiniteDuration = null)(stateFunction: StateFunction) = {
     val interceptor: StateFunction = {
       case Event(Process(generation, thisNode, direction, msg), stateData) => {
         val newState = (stateFunction orElse ender)(Event(msg, stateData))
