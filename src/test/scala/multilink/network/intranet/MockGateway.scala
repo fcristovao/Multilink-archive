@@ -1,9 +1,9 @@
 package multilink.network.intranet
 
-import akka.actor.Actor
+import akka.actor.{ActorRef, Actor}
 import multilink.game.network.intranet.Gateway.{Connected, Connect, Routed, Route}
 
-class MockGateway extends Actor {
+class MockGateway(connectionEndpoint: ActorRef) extends Actor {
   override def receive: Receive = {
     case Route(from, through, to) =>
       sender ! Routed(from, through, to)
