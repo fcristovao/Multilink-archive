@@ -1,19 +1,20 @@
 package multilink.util.composition
 
 import akka.actor.Actor
-import CompositionNetwork._
+import multilink.util.composition.channels.Channel
 import akka.event.LoggingReceive
 
 trait ComposableActor extends Actor with Composable {
 
-  abstract override def receive: Receive = LoggingReceive {
-    case Process(generation, thisNode, direction, msg) => {
-      if (super.receive.isDefinedAt(msg)) {
-        super.receive(msg)
+  def react: Receive
+
+  override def receive: Receive = LoggingReceive {
+    case Channel.Process(generation, thisNode,  msg) => {
+      if (react.isDefinedAt(msg)) {
+        react(msg)
       }
-      sender ! Done(generation, thisNode, direction, msg)
+      sender ! Channel.Done(generation, thisNode, msg)
     }
-    case msg if super.receive.isDefinedAt(msg) => super.receive(msg)
   }
 
 }
