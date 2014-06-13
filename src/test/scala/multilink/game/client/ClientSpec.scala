@@ -36,18 +36,18 @@ class ClientSpec extends TestKit(ActorSystem("test", ConfigFactory.load("applica
     }
     "be able to connect directly to an Internet Point" in {
       val mockConnectionEndpoint = TestProbe()
-      val (client, _, _) = testSetup(mockRoute(mockConnectionEndpoint, 1, 2))
+      val (client, _, _) = testSetup(mockRoute(mockConnectionEndpoint.ref, 1, 2))
 
       client ! Subscribe
       expectMsg(Subscribed)
 
     }
-
   }
+
   "Multilink Client's Subscribers" should {
     "get updates of the Dialer's State as one route is being established" in {
       val mockConnectionEndpoint = TestProbe()
-      val (client, dialer, _) = testSetup(mockRoute(mockConnectionEndpoint, 1, 2))
+      val (client, dialer, _) = testSetup(mockRoute(mockConnectionEndpoint.ref, 1, 2))
 
       client ! Subscribe
       expectMsgAllOf(Subscribed, CurrentState(dialer, Dialer.Idle))
@@ -60,13 +60,13 @@ class ClientSpec extends TestKit(ActorSystem("test", ConfigFactory.load("applica
     }
   }
 
-  def mockRoute(connectionEndpoint: TestProbe, ips: InternetPointAddress*)(implicit system: ActorSystem) = {
-    val mockGateway = system.actorOf(Props(classOf[MockGateway], connectionEndpoint.ref))
+  def mockRoute(connectionEndpoint: ActorRef, ips: InternetPointAddress*)(implicit system: ActorSystem) = {
+    val mockGateway = system.actorOf(Props(classOf[MockGateway]))
     val ipsAndGateways =
-      for (ip <- ips) yield {
+      for (ip <- ips.dropRight(1)) yield {
         (ip, mockGateway)
       }
-    ipsAndGateways
+    ipsAndGateways :+ (ips.last, connectionEndpoint)
   }
 
   def testSetup(ipdb: Seq[(InternetPointAddress, ActorRef)])(implicit system: ActorSystem) = {
