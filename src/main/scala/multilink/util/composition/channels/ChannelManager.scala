@@ -42,6 +42,8 @@ class ChannelManager[A <: Actor with Composable](network: ArrowOperator[A]) exte
   val rootCompositionNetwork = NetworkGraph.fromArrowOperator(network)
   private val channelIds = Iterator from 1
 
+  //TODO: Kill channels!
+
   def receive = {
     case OpenChannel => {
       val channel = createChannel()
