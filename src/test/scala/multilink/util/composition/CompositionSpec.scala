@@ -1,12 +1,11 @@
 package multilink.util.composition
 
 import akka.testkit.TestKit
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.ActorSystem
 import akka.testkit.ImplicitSender
 import org.scalatest.{WordSpecLike, BeforeAndAfterAll}
 import scala.collection.mutable.Queue
 import com.typesafe.config.ConfigFactory
-import multilink.util.composition.channels.ChannelManager.{ChannelOpened, OpenChannel}
 
 object CompositionSpec {
 
@@ -18,7 +17,7 @@ object CompositionSpec {
   case class ReplyFrom(id: Int) extends Messages
   case class GetReplyFrom(id: Int) extends Messages
   case class GetCountFrom(id: Int) extends Messages
-  case object Discharge extends Messages
+  case class Discharge(id: Int) extends Messages
 
   class Base(id: Int) extends ComposableActor {
     val counter = Iterator from 1
@@ -26,7 +25,7 @@ object CompositionSpec {
     val accumulator: Queue[Messages] = Queue()
 
     def react = {
-      case Discharge => accumulator.foreach(msg => sender ! msg)
+      case Discharge(expectedId) if expectedId == id => accumulator.foreach(msg => sender ! msg)
       case GetCountFrom(expectedId) if expectedId == id => sender ! CountFrom(id, soFar)
       case GetReplyFrom(expectedId) if expectedId == id => sender ! ReplyFrom(id)
       case msg: Messages => {
@@ -93,11 +92,7 @@ class CompositionSpec extends TestKit(ActorSystem("TestSystem", ConfigFactory.lo
   }
   "N messages sent into a composition network" should {
     "reach every actor if none replies" in {
-      val pass1 = Pass(1).lift
-      val pass2 = Pass(2).lift
-      val pass3 = Pass(3).lift
-      val pass4 = Pass(4).lift
-      val network = pass1 >>> pass2 >>> pass3 >>> pass4
+      val network = Pass(1) >>> Pass(2) >>> Pass(3) >>> Pass(4)
       val channel = openChannelFor(network)
 
       val limit = 1000
@@ -121,61 +116,43 @@ class CompositionSpec extends TestKit(ActorSystem("TestSystem", ConfigFactory.lo
       channel ! GetCountFrom(4)
       expectMsg(CountFrom(4, limit))
     }
+
+    "reach every actor if none replies in the same order they were sent" in {
+      val channel = openChannelFor(Pass(1) >>> Pass(2) >>> Pass(3) >>> Pass(4))
+
+      val uniqueMsgs = for (i <- 1 to 100)
+      yield {
+        UniquePassThrough(i)
+      }
+
+      uniqueMsgs.foreach(msg => channel ! msg)
+
+      channel ! GetReplyFrom(1)
+      expectMsg(ReplyFrom(1))
+
+      channel ! Discharge(1)
+      uniqueMsgs.foreach(expectMsg(_))
+
+      channel ! Discharge(2)
+      uniqueMsgs.foreach(expectMsg(_))
+
+      channel ! Discharge(3)
+      uniqueMsgs.foreach(expectMsg(_))
+
+      channel ! Discharge(4)
+      uniqueMsgs.foreach(expectMsg(_))
+
+    }
     /*
-          "reach every actor if none replies in the same order they were sent" in {
-            val pass1 = Pass(1).lift
-            val pass2 = Pass(2).lift
-            val pass3 = Pass(3).lift
-            val pass4 = Pass(4).lift
-            val network = pass1 >>> pass2 >>> pass3 >>> pass4
-            val networkActor = system.actorOf(Props(network))
+              "generate replies from every actor that responds" in {
+                val network = Pass(1) >>> Pass(2) >>> Pass(3) >>> (Replier(4) &&& Replier(5) &&& Replier(6))
+                val networkActor = system.actorOf(Props(network))
 
-            val limit = 10000
-
-            val uniqueMsgs = for(i<- 0 to limit)
-            yield UniquePassThrough(i)
-
-            uniqueMsgs.foreach(msg => networkActor ! msg)
-
-            networkActor ! GetReplyFrom(1)
-            expectMsg(ReplyFrom(1))
-
-            pass1 ! Discharge
-            pass1 ! GetReplyFrom(1)
-            uniqueMsgs.foreach(expectMsg(_))
-            expectMsg(ReplyFrom(1))
-
-            pass2 ! Discharge
-            pass2 ! GetReplyFrom(2)
-            uniqueMsgs.foreach(expectMsg(_))
-            expectMsg(ReplyFrom(2))
-
-            pass3 ! Discharge
-            pass3 ! GetReplyFrom(3)
-            uniqueMsgs.foreach(expectMsg(_))
-            expectMsg(ReplyFrom(3))
-
-            pass4 ! Discharge
-            pass4 ! GetReplyFrom(4)
-            uniqueMsgs.foreach(expectMsg(_))
-            expectMsg(ReplyFrom(4))
-          }
-
-          "generate replies from every actor that responds" in {
-            val network = Pass(1) >>> Pass(2) >>> Pass(3) >>> (Replier(4) &&& Replier(5) &&& Replier(6))
-            val networkActor = system.actorOf(Props(network))
-
-            networkActor ! GetReplyFromAll
-            expectMsgAllOf(ReplyFrom(4),ReplyFrom(5),ReplyFrom(6))
-          }
-          */
+                networkActor ! GetReplyFromAll
+                expectMsgAllOf(ReplyFrom(4),ReplyFrom(5),ReplyFrom(6))
+              }
+              */
   }
 
-  def openChannelFor(network: ArrowOperator[_]): ActorRef = {
-    val networkActor = system.actorOf(network)
 
-    networkActor ! OpenChannel
-    val ChannelOpened(channel) = expectMsgType[ChannelOpened]
-    channel
-  }
 }
