@@ -1,7 +1,6 @@
 package multilink.game.network.intranet
 
 import akka.actor.{Props, Actor, LoggingFSM}
-import scala.concurrent.duration._
 
 import multilink.util.composition.ComposableFSM
 import multilink.game.network.internet.InternetPointAddress
@@ -33,26 +32,19 @@ class Gateway(ip: InternetPointAddress) extends Actor with ComposableFSM[Gateway
   startWith(Enabled, Unit)
 
   whenIn(Enabled) {
-    case Event(DisableGateway,_) =>
-      goto(Disabled) forMax (2 seconds) replying(DisableGateway) replying ("hello")
-    case Event(Route(from, through, to),_) if ip == through =>
-    	stay replying Routed(from, through, to)
-    case Event(Connect(from, to),_) if ip == to =>
-    	stay replying Connected(from, to)
-    case Event(StateTimeout,_) =>
-      goto(Disabled) forMax (2 seconds)
-    case _ =>
-      stay replying ConnectionRefused
+    case Event(Route(from, through, to),_) =>
+      if (ip == through) {
+        stay replying Routed(from, through, to)
+      } else {
+        stay replying ConnectionRefused
+      }
+    case Event(Connect(from, to),_) =>
+      if (ip == to) {
+        stay replying Connected(from, to)
+      } else {
+        stay replying ConnectionRefused
+      }
   }
 
-  whenIn(Disabled) {
-    case Event(DisableGateway,_) =>
-      log.info("stopping from disable")
-      stop
-    case Event(StateTimeout,_) =>
-      log.info("stopping")
-      stop
-  }
-
-  initialize // this checks validity of the initial state and sets up timeout if needed
+  initialize() // this checks validity of the initial state and sets up timeout if needed
 }
