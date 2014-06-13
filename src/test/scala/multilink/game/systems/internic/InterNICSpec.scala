@@ -1,4 +1,4 @@
-package multilink.game.systems
+package multilink.game.systems.internic
 
 import akka.testkit.{ImplicitSender, TestKit}
 import akka.actor.ActorSystem
@@ -6,8 +6,9 @@ import com.typesafe.config.ConfigFactory
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
 import multilink.game.network.intranet.Gateway
 import multilink.util.composition._
+import multilink.game.client.Client
 
-class InterNicSpec extends TestKit(ActorSystem("test", ConfigFactory.load("application-test")))
+class InterNICSpec extends TestKit(ActorSystem("test", ConfigFactory.load("application-test")))
                            with WordSpecLike with ImplicitSender with BeforeAndAfterAll {
 
   val InterNICInternetPoint = 2
@@ -21,6 +22,11 @@ class InterNicSpec extends TestKit(ActorSystem("test", ConfigFactory.load("appli
       val channel = openChannelFor(InterNIC(InterNICInternetPoint))
       channel ! Gateway.Connect(1,InterNICInternetPoint)
       expectMsg(Gateway.Connected(1,InterNICInternetPoint))
+    }
+    "answer to Client.Hello messages with Welcome message" in {
+      val channel = openChannelFor(InterNIC(InterNICInternetPoint))
+      channel ! Client.Hello
+      expectMsg(InterNIC.WelcomeToInterNIC)
     }
 
   }
