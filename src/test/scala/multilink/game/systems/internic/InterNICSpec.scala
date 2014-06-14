@@ -11,7 +11,7 @@ import multilink.game.client.Client
 class InterNICSpec extends TestKit(ActorSystem("test", ConfigFactory.load("application-test")))
                            with WordSpecLike with ImplicitSender with BeforeAndAfterAll {
 
-  val InterNICInternetPoint = 2
+  implicit val config = InterNIC.Config(2, Map("www.google.com" -> 4, "akka.io" -> 8), Map("admin" -> "12345"))
 
   override def afterAll() {
     TestKit.shutdownActorSystem(system)
@@ -19,17 +19,17 @@ class InterNICSpec extends TestKit(ActorSystem("test", ConfigFactory.load("appli
 
   "An InterNIC system" should {
     "accept connections" in {
-      val channel = openChannelFor(InterNIC(InterNICInternetPoint))
-      channel ! Gateway.Connect(1,InterNICInternetPoint)
-      expectMsg(Gateway.Connected(1,InterNICInternetPoint))
+      val channel = openChannelFor(InterNIC(config))
+      channel ! Gateway.Connect(1,config.ip)
+      expectMsg(Gateway.Connected(1,config.ip))
     }
     "answer to Client.Hello messages with Welcome message" in {
-      val channel = openChannelFor(InterNIC(InterNICInternetPoint))
+      val channel = openChannelFor(InterNIC(config))
       channel ! Client.Hello
       expectMsg(Client.NiceToMeetYouMyNameIs(InterNIC))
     }
     "answer with the global Address book when requested" in {
-      val channel = openChannelFor(InterNIC(InterNICInternetPoint))
+      val channel = openChannelFor(InterNIC(config))
       channel ! InterNICWebServer.GetIPAddressBook
       expectMsgType[InterNICWebServer.IPAddressBook]
     }

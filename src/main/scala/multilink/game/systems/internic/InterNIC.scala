@@ -2,12 +2,19 @@ package multilink.game.systems.internic
 
 import multilink.game.network.intranet.Gateway
 import multilink.game.network.internet._
+import multilink.game.network.intranet.AccessControl.Credentials
+import multilink.game.systems.internic.InterNICWebServer.AddressBook
+
 
 object InterNIC {
   import multilink.util.composition.ArrowOperator._
 
-  def apply(ip: InternetPointAddress) = {
-    Gateway(ip) >>> InterNICWebServer(Map("www.google.com" -> 4, "akka.io" -> 8))
+  case class Config(ip: InternetPointAddress,
+                    addressBook: AddressBook,
+                    credentials: Credentials)
+
+  def apply(config: Config) = {
+    Gateway(config.ip) >>> InterNICWebServer(config.addressBook)
   }
 }
 
