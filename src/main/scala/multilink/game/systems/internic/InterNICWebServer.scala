@@ -3,18 +3,22 @@ package multilink.game.systems.internic
 import akka.actor.Props
 import multilink.util.composition.ComposableActor
 import multilink.game.client.Client
-import scala.collection.immutable
 import multilink.game.network.internet._
+import multilink.game.systems.internic.InterNICWebServer.AddressBook
+import scala.collection.immutable
 
 object InterNICWebServer {
-  def apply(addressBook: Map[String, InternetPointAddress]) = Props(classOf[InterNICWebServer], addressBook)
+
+  type AddressBook = immutable.Map[String, InternetPointAddress]
+
+  def apply(addressBook: AddressBook) = Props(classOf[InterNICWebServer], addressBook)
 
   sealed trait Messages
   case object GetIPAddressBook extends Messages
-  case class IPAddressBook(addresses: immutable.Map[String, InternetPointAddress])
+  case class IPAddressBook(addresses: AddressBook)
 }
 
-class InterNICWebServer(val addressBook: Map[String, InternetPointAddress]) extends ComposableActor {
+class InterNICWebServer(val addressBook: AddressBook) extends ComposableActor {
   import InterNICWebServer._
 
   override def react: Receive = {
