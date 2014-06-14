@@ -30,8 +30,8 @@ class InterNICSpec extends TestKit(ActorSystem("test", ConfigFactory.load("appli
     }
     "answer with the global Address book when requested" in {
       val channel = openChannelFor(InterNIC(InterNICInternetPoint))
-      channel ! InterNIC.GetIPAddressBook
-      expectMsgType[InterNIC.IPAddressBook]
+      channel ! InterNICWebServer.GetIPAddressBook
+      expectMsgType[InterNICWebServer.IPAddressBook]
     }
     /*
     "should allow you to login" in {
