@@ -1,7 +1,7 @@
 package multilink.game.network.intranet
 
 import multilink.util.composition.ComposableFSM
-import multilink.game.network.intranet.AccessControl.{Config, Password, Username}
+import multilink.game.network.intranet.AccessControl.{Credentials, Config}
 import scala.collection.immutable.Map
 import akka.actor.{ActorRef, Props}
 
@@ -11,6 +11,7 @@ object AccessControl {
   type Username = String
   type Password = String
 
+  type Credentials = Map[Username, Password]
 
   sealed trait Messages
   case class AddUsernameAndPassword(username: Username, password: Password) extends Messages
@@ -22,9 +23,9 @@ object AccessControl {
   sealed trait State
   case object Active extends State
 
-  case class Data(credentials: Map[Username, Password], sessions: Set[ActorRef])
+  case class Data(credentials: Credentials, sessions: Set[ActorRef])
 
-  def apply(credentials: Map[Username, Password])(implicit config: Config = Config()) = {
+  def apply(credentials: Credentials)(implicit config: Config = Config()) = {
     Props(classOf[AccessControl], credentials, config)
   }
 
@@ -32,10 +33,10 @@ object AccessControl {
 
 }
 
-class AccessControl(initialDb: Map[Username, Password], config: Config) extends ComposableFSM[AccessControl.State, AccessControl.Data] {
+class AccessControl(initialCredentials: Credentials, config: Config) extends ComposableFSM[AccessControl.State, AccessControl.Data] {
   import AccessControl._
 
-  startWith(Active, Data(initialDb, Set()))
+  startWith(Active, Data(initialCredentials, Set()))
 
   whenIn(Active) {
     case Event(Login(username, tryPassword), data@Data(credentials, sessions)) =>
