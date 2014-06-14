@@ -14,6 +14,7 @@ object Client {
   case class Connected(internetPointAddress: InternetPointAddress) extends Messages
   // Interactions
   case object Hello extends Messages
+  case class NiceToMeetYouMyNameIs(identity: Any) extends Messages
 }
 
 class Client(ipdb: ActorRef, dialer: ActorRef) extends Actor {

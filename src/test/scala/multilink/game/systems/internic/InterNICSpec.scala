@@ -26,9 +26,20 @@ class InterNICSpec extends TestKit(ActorSystem("test", ConfigFactory.load("appli
     "answer to Client.Hello messages with Welcome message" in {
       val channel = openChannelFor(InterNIC(InterNICInternetPoint))
       channel ! Client.Hello
-      expectMsg(InterNIC.WelcomeToInterNIC)
+      expectMsg(Client.NiceToMeetYouMyNameIs(InterNIC))
     }
-
+    "answer with the global Address book when requested" in {
+      val channel = openChannelFor(InterNIC(InterNICInternetPoint))
+      channel ! InterNIC.GetIPAddressBook
+      expectMsgType[InterNIC.IPAddressBook]
+    }
+    /*
+    "should allow you to login" in {
+      val channel = openChannelFor(InterNIC(InterNICInternetPoint))
+      channel ! AccessControl.Login()
+      expectMsgType[InterNIC.IPAddressBook]
+    }
+    */
   }
 
 }
