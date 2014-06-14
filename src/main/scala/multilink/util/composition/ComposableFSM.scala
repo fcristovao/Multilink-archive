@@ -1,10 +1,10 @@
 package multilink.util.composition
 
-import akka.actor.{FSM, Actor}
+import akka.actor.{LoggingFSM, FSM, Actor}
 import scala.concurrent.duration._
 import multilink.util.composition.channels.Channel.{Done, Process}
 
-trait ComposableFSM[S, D] extends FSM[S, D] with Composable {
+trait ComposableFSM[S, D] extends FSM[S, D] with LoggingFSM[S, D] with Composable {
   this: Actor =>
 
   protected val ender: StateFunction = {
@@ -18,7 +18,7 @@ trait ComposableFSM[S, D] extends FSM[S, D] with Composable {
         (stateFunction orElse ender)(Event(msg, stateData)) replying doneMsg
       }
     }
-    super.when(stateName, stateTimeout)(interceptor)
+    super.when(stateName, stateTimeout)(interceptor orElse stateFunction)
   }
 
 }
