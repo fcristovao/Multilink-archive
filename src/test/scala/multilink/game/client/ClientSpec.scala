@@ -3,11 +3,10 @@ package multilink.game.client
 import akka.testkit.TestProbe
 import akka.actor.{ActorRef, Props, ActorSystem}
 import multilink.game.client.Client.{Subscribed, Subscribe}
-import multilink.network.intranet.MockGateway
-import multilink.game.network.internet._
-import akka.actor.FSM.Transition
-import akka.actor.FSM.CurrentState
+import akka.actor.FSM.{Transition, CurrentState}
 import multilink.util.testing.MultilinkTestWordSpec
+import multilink.network.intranet.MockGateway
+import multilink.game.network.internet.InternetPointAddress
 
 class ClientSpec extends MultilinkTestWordSpec {
 
@@ -28,13 +27,13 @@ class ClientSpec extends MultilinkTestWordSpec {
       client ! Subscribe
       expectMsgAllOf(Subscribed, CurrentState(dialer, Dialer.Idle))
     }
-    "be able to connect directly to an Internet Point" in {
+    "be able to connect directly to an Internet Point" ignore {
       val mockConnectionEndpoint = TestProbe()
-      val (client, _, _) = testSetup(mockRoute(mockConnectionEndpoint.ref, 1, 2))
+      val (client, dialer, _) = testSetup(mockRoute(mockConnectionEndpoint.ref, 1, 2))
 
       client ! Subscribe
-      expectMsg(Subscribed)
-
+      expectMsgAllOf(Subscribed, CurrentState(dialer, Dialer.Idle))
+      //TODO: Implement
     }
   }
 
