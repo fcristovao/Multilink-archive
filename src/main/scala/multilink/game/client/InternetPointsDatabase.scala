@@ -4,6 +4,7 @@ import scala.collection.mutable.Map
 import akka.actor._
 import scaldi.{Injectable, Injector}
 import multilink.game.network.internet.InternetPointAddress
+import akka.event.LoggingReceive
 
 object InternetPointsDatabase {
 	sealed trait Messages
@@ -25,7 +26,7 @@ class SimpleInternetPointsDatabase extends InternetPointsDatabase {
 	
 	val database = Map[Int, ActorRef]()
 	
-	def receive = {
+	def receive = LoggingReceive {
 		case Add(id, internetPoint) => database += id -> internetPoint
 		case Get(id) => sender ! IPFor(id, database.get(id))
 	}

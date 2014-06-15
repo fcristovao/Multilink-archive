@@ -3,6 +3,7 @@ package multilink.game.client
 import akka.actor._
 import akka.actor.FSM.SubscribeTransitionCallBack
 import multilink.game.network.internet.InternetPointAddress
+import akka.event.LoggingReceive
 
 object Client {
   sealed trait Messages
@@ -20,7 +21,7 @@ object Client {
 class Client(ipdb: ActorRef, dialer: ActorRef) extends Actor {
   import Client._
 
-  def receive = {
+  def receive = LoggingReceive {
     case Subscribe => {
       sender() ! Subscribed
       dialer ! SubscribeTransitionCallBack(sender())
