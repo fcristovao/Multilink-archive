@@ -1,22 +1,14 @@
 package multilink.network.intranet
 
-import akka.testkit.{ImplicitSender, TestKit}
-import akka.actor.ActorSystem
-import com.typesafe.config.ConfigFactory
-import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
 import multilink.util.composition._
 import multilink.game.network.intranet.Gateway
+import multilink.util.testing.MultilinkTestWordSpec
 
-class GatewaySpec extends TestKit(ActorSystem("test", ConfigFactory.load("application-test")))
-                          with WordSpecLike with ImplicitSender with BeforeAndAfterAll {
+class GatewaySpec extends MultilinkTestWordSpec {
 
   val fromInternetPointAddress = 1
   val internetPointAddress = 2
   val otherInternetPointAddress = 3
-
-  override def afterAll() {
-    TestKit.shutdownActorSystem(system)
-  }
 
   "A gateway" should {
     "accept connections if the InternetPointAddress matches his own" in {

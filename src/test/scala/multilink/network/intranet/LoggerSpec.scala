@@ -1,11 +1,11 @@
 package multilink.network.intranet
 
-import multilink.util.testing.MultilinkTestSpec
+import multilink.util.testing.MultilinkTestWordSpec
 import multilink.util.composition._
 import multilink.game.network.intranet.Logger
 import multilink.game.network.intranet.Logger.{Logs, GetLogs}
 
-class LoggerSpec extends MultilinkTestSpec {
+class LoggerSpec extends MultilinkTestWordSpec {
 
   "A Logger" should {
     "log the messages that go through it and return them when asked" in {

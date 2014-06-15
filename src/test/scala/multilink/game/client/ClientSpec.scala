@@ -1,21 +1,15 @@
 package multilink.game.client
 
-import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
-import akka.testkit.{TestProbe, ImplicitSender, TestKit}
+import akka.testkit.TestProbe
 import akka.actor.{ActorRef, Props, ActorSystem}
-import com.typesafe.config.ConfigFactory
 import multilink.game.client.Client.{Subscribed, Subscribe}
 import multilink.network.intranet.MockGateway
 import multilink.game.network.internet._
 import akka.actor.FSM.Transition
 import akka.actor.FSM.CurrentState
+import multilink.util.testing.MultilinkTestWordSpec
 
-class ClientSpec extends TestKit(ActorSystem("test", ConfigFactory.load("application-test")))
-                         with WordSpecLike with ImplicitSender with BeforeAndAfterAll {
-
-  override def afterAll() {
-    TestKit.shutdownActorSystem(system)
-  }
+class ClientSpec extends MultilinkTestWordSpec {
 
   "A Multilink client" should {
     "accept subscribers" in {
@@ -66,7 +60,7 @@ class ClientSpec extends TestKit(ActorSystem("test", ConfigFactory.load("applica
       for (ip <- ips.dropRight(1)) yield {
         (ip, mockGateway)
       }
-    ipsAndGateways :+ (ips.last, connectionEndpoint)
+    ipsAndGateways :+(ips.last, connectionEndpoint)
   }
 
   def testSetup(ipdb: Seq[(InternetPointAddress, ActorRef)])(implicit system: ActorSystem) = {

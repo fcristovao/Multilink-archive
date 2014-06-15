@@ -1,17 +1,13 @@
 package multilink.network.intranet
 
-import akka.testkit.{ImplicitSender, TestKit}
-import akka.actor.ActorSystem
-import com.typesafe.config.ConfigFactory
-import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
 import scala.collection.immutable
 import multilink.game.network.intranet.AccessControl.{AccessDenied, Login, AccessGranted}
 import multilink.game.network.intranet.AccessControl
 import multilink.util.composition._
 import ArrowOperator._
+import multilink.util.testing.MultilinkTestWordSpec
 
-class AccessControlSpec extends TestKit(ActorSystem("test", ConfigFactory.load("application-test")))
-                                with WordSpecLike with ImplicitSender with BeforeAndAfterAll {
+class AccessControlSpec extends MultilinkTestWordSpec {
 
   case class Hello() extends ComposableActor {
     def react = {
@@ -23,10 +19,6 @@ class AccessControlSpec extends TestKit(ActorSystem("test", ConfigFactory.load("
     "admin" -> "12345",
     "anotherUser" -> "54321"
   )
-
-  override def afterAll() {
-    TestKit.shutdownActorSystem(system)
-  }
 
   "An Access Control" should {
     "deny access for an unknown user" in {

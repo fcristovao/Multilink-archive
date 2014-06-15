@@ -3,12 +3,20 @@ package multilink.util.testing
 import akka.testkit.{ImplicitSender, TestKit}
 import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
+import org.scalatest.{GivenWhenThen, FeatureSpecLike, BeforeAndAfterAll, WordSpecLike}
 
-class MultilinkTestSpec extends TestKit(ActorSystem("test", ConfigFactory.load("application-test")))
-                                with WordSpecLike with ImplicitSender with BeforeAndAfterAll {
+class MultilinkTestKit extends TestKit(ActorSystem("test", ConfigFactory.load("application-test")))
+                               with ImplicitSender {
+}
 
+class MultilinkTestWordSpec extends MultilinkTestKit with WordSpecLike with BeforeAndAfterAll {
   override def afterAll() {
     TestKit.shutdownActorSystem(system)
   }
 }
+
+class MultilinkTestFeatureSpec extends MultilinkTestKit with FeatureSpecLike with BeforeAndAfterAll with GivenWhenThen {
+  override def afterAll() {
+    TestKit.shutdownActorSystem(system)
+  }
+} 

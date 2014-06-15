@@ -1,17 +1,11 @@
 package multilink.game.client
 
-import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
-import akka.testkit.{TestProbe, ImplicitSender, TestKit}
-import akka.actor.{ActorSystem, Props}
-import com.typesafe.config.ConfigFactory
+import akka.testkit.TestProbe
+import akka.actor.Props
 import multilink.game.client.Dialer.{UnknownInternetPoint, IllegalRoute}
+import multilink.util.testing.MultilinkTestWordSpec
 
-class DialerSpec extends TestKit(ActorSystem("test", ConfigFactory.load("application-test")))
-                         with WordSpecLike with ImplicitSender with BeforeAndAfterAll {
-
-  override def afterAll() {
-    TestKit.shutdownActorSystem(system)
-  }
+class DialerSpec extends MultilinkTestWordSpec {
 
   "A Dialer" should {
     "not accept routing lists with less than 2 points" in {
