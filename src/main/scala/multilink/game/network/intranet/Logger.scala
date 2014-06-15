@@ -1,6 +1,7 @@
 package multilink.game.network.intranet
 
 import multilink.util.composition.ComposableFSM
+import akka.actor.Props
 
 object Logger {
   sealed trait State
@@ -11,6 +12,8 @@ object Logger {
   case class Logs(logs: Data) extends Messages
 
   type Data = List[Any]
+
+  def apply() = Props[Logger]
 }
 
 class Logger extends ComposableFSM[Logger.State, Logger.Data] {
