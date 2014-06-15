@@ -4,7 +4,7 @@ import akka.testkit.{ImplicitSender, TestKit}
 import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
-import multilink.game.network.intranet.Gateway
+import multilink.game.network.intranet.{Logger, AccessControl, Gateway}
 import multilink.util.composition._
 import multilink.game.client.Client
 
@@ -33,13 +33,18 @@ class InterNICSpec extends TestKit(ActorSystem("test", ConfigFactory.load("appli
       channel ! InterNICWebServer.GetIPAddressBook
       expectMsgType[InterNICWebServer.IPAddressBook]
     }
-    /*
     "should allow you to login" in {
-      val channel = openChannelFor(InterNIC(InterNICInternetPoint))
-      channel ! AccessControl.Login()
-      expectMsgType[InterNIC.IPAddressBook]
+      val channel = openChannelFor(InterNIC(config))
+      channel ! AccessControl.Login("admin", "12345")
+      expectMsg(AccessControl.AccessGranted("admin"))
     }
-    */
+    "should allow you to access the system logs after login was done" ignore {
+      val channel = openChannelFor(InterNIC(config))
+      channel ! AccessControl.Login("admin", "12345")
+      expectMsg(AccessControl.AccessGranted("admin"))
+      channel ! Logger.GetLogs
+      expectMsgType[Logger.Logs]
+    }
   }
 
 }

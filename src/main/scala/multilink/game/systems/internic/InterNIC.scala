@@ -1,6 +1,6 @@
 package multilink.game.systems.internic
 
-import multilink.game.network.intranet.Gateway
+import multilink.game.network.intranet.{AccessControl, Gateway}
 import multilink.game.network.internet._
 import multilink.game.network.intranet.AccessControl.Credentials
 import multilink.game.systems.internic.InterNICWebServer.AddressBook
@@ -14,7 +14,7 @@ object InterNIC {
                     credentials: Credentials)
 
   def apply(config: Config) = {
-    Gateway(config.ip) >>> InterNICWebServer(config.addressBook)
+    Gateway(config.ip) >>> InterNICWebServer(config.addressBook) >>> AccessControl(config.credentials)
   }
 }
 
