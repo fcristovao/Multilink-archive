@@ -25,6 +25,8 @@ object Route {
 class Route(routingSeq: Seq[(InternetPointAddress, ActorRef)]) extends Actor with
                                                                        FSM[Route.States, Route.Data] with
                                                                        LoggingFSM[Route.States, Route.Data] {
+  import scala.language.postfixOps
+
   require(routingSeq.size >= 2, "Routing list must contain 2 or more points")
 
   def sendGatewayRequests(routingSeq: Seq[(InternetPointAddress, ActorRef)]) {
@@ -47,7 +49,7 @@ class Route(routingSeq: Seq[(InternetPointAddress, ActorRef)]) extends Actor wit
   }
 
   when(WaitingGatewaysConfirmation, 5 seconds) {
-    case Event(msg: Gateway.Messages, WhileWaitingGatewaysConfirmation(answerTo, answeredGateways)) => {
+    case Event(msg: Gateway.Messages, WhileWaitingGatewaysConfirmation(answerTo, answeredGateways)) =>
       val newAnsweredGateways = answeredGateways + sender
       if (newAnsweredGateways.size == routingSeq.size - 1) {
         answerTo ! ConnectionEstablished()
@@ -55,7 +57,6 @@ class Route(routingSeq: Seq[(InternetPointAddress, ActorRef)]) extends Actor wit
       } else {
         stay using WhileWaitingGatewaysConfirmation(answerTo, newAnsweredGateways)
       }
-    }
 
     case Event(StateTimeout, WhileWaitingGatewaysConfirmation(answerTo, _)) =>
       answerTo ! ConnectionFailed

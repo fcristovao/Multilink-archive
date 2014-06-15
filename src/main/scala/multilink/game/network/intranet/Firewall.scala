@@ -20,6 +20,7 @@ object Firewall {
 
 
 class Firewall(x: String) extends Actor with ComposableFSM[Firewall.State, Unit] with LoggingFSM[Firewall.State, Unit] {
+  import scala.language.postfixOps
   import Firewall._
 
   startWith(Active, Unit)
@@ -43,7 +44,7 @@ class Firewall(x: String) extends Actor with ComposableFSM[Firewall.State, Unit]
   whenIn(Disabled) {
     case Event(StateTimeout,_) =>
       log.info("stopping")
-      stop
+      stop()
   }
 
   initialize()

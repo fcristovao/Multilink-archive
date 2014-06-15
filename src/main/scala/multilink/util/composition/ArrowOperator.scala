@@ -5,6 +5,7 @@ import scala.reflect.ClassTag
 import multilink.util.composition.channels.ChannelManager
 
 object ArrowOperator {
+  import scala.language.implicitConversions
 
   implicit def byNameActorCreatorToArrowOperator[A <: Actor with Composable](actorCreator: => A)(implicit evidence: ClassTag[A]): Lift[A] = {
     Lift[A](Props(actorCreator))
