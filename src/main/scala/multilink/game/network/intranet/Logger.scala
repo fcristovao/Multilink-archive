@@ -1,27 +1,30 @@
 package multilink.game.network.intranet
 
-import akka.actor.{Actor, FSM, LoggingFSM}
-import scala.collection.mutable.LinkedList
-import multilink.util.composition.{Composable, ComposableActor}
+import multilink.util.composition.ComposableFSM
 
 object Logger {
-	
-	type State = Int
+  sealed trait State
+  case object Active extends State
+
+  sealed trait Messages
+  case object GetLogs extends Messages
+  case class Logs(logs: Data) extends Messages
+
+  type Data = List[Any]
 }
 
-trait Logger extends ComposableActor {
-	
-	val ids = Iterator from 0
-	var log = new LinkedList[(Int, Any)]()
-	
-	def getState = 0
-	def setState(x: Logger.State) : Unit = 0
-	
-	abstract override def receive = {
-		case anyMsg => 
-			log +:= ((ids.next(), anyMsg))
-			println(log)
-	}
+class Logger extends ComposableFSM[Logger.State, Logger.Data] {
+  import Logger._
 
+  startWith(Active, List())
+
+  whenIn(Active) {
+    case Event(GetLogs, currentLogs) =>
+      stay() replying Logs(currentLogs)
+    case Event(anyMsg, currentLog) =>
+      stay() using (currentLog :+ anyMsg)
+  }
+
+  initialize()
 }
 
